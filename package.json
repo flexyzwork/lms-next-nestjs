@@ -1,0 +1,33 @@
+{
+  "name": "lms-next-nestjs",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "devDependencies": {
+    "typescript": "^5",
+    "turbo": "^2",
+    "prettier": "^3"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter='@packages/*'",
+    "check-types": "turbo run check-types",
+    "db": "pnpm --filter @packages/database",
+    "db:init": "pnpm db migrate dev --name init",
+    "db:seed": "pnpm db seed",
+    "db:reset": "pnpm docker db:reset && pnpm db migrate dev",
+    "dev": "turbo run dev",
+    "dev:auth": "pnpm --filter @apps/auth dev",
+    "dev:api": "pnpm --filter @apps/api dev",
+    "dev:web": "pnpm --filter @apps/web dev",
+    "docker": "pnpm --filter @packages/docker",
+    "format": "prettier --write .",
+    "lint": "turbo run lint",
+    "setup": "chmod +x setup.sh && ./setup.sh",
+    "test": "turbo run test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

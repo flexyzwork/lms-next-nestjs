@@ -1,0 +1,39 @@
+### 🌍 Base API URL and Test User ID
+@baseUrl = http://localhost:4000
+@id = 8eswd6  
+# Replace with actual product ID if needed
+
+### 🛒 Get All Products (GET)
+GET {{baseUrl}}/products
+
+###
+
+### 🔍 Get Product by ID (GET)
+GET {{baseUrl}}/products/{{id}}
+
+###
+
+### ➕ Create a New Product (POST)
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "name": "New Product",
+  "price": 1000
+}
+
+###
+
+### ✏ Update Product Information (PUT)
+PUT {{baseUrl}}/products/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Updated Product",
+  "price": 2000
+}
+
+###
+
+### 🗑 Delete a Product (DELETE)
+DELETE {{baseUrl}}/products/{{id}}

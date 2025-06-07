@@ -1,0 +1,296 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GITHUB
+}
+
+enum UserRole {
+  USER
+  INSTRUCTOR
+}
+
+enum Level {
+  Beginner
+  Intermediate
+  Advanced
+}
+
+enum CourseStatus {
+  Draft
+  Published
+}
+
+enum ChapterType {
+  Text
+  Quiz
+  Video
+}
+
+// model User {
+//   userId      String       @id @default(uuid())
+//   provider    AuthProvider @default(EMAIL)
+//   providerId  String?
+//   email       String?
+//   password    String?
+//   role        UserRole     @default(USER)
+//   name        String?
+//   picture     String?
+//   createdAt   DateTime     @default(now())
+//   updatedAt   DateTime?    @updatedAt
+//   settings    Json?
+
+//   // 🔥 연관 관계
+//   transactions      Transaction[]
+//   courseProgress   UserCourseProgress[]
+//   enrollments      Enrollment[]
+//   comments         Comment[]
+// }
+
+
+
+// 사용자 테이블 - 확장 가능한 구조
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String?  @unique
+  password    String?  // 소셜 로그인 사용자는 null
+  firstName   String?
+  lastName    String?
+  avatar      String?
+  isActive    Boolean  @default(true)
+  isVerified  Boolean  @default(false)
+
+  // 소셜 로그인 정보
+  socialAccounts SocialAccount[]
+
+  // 보안 관련
+  lastLoginAt    DateTime?
+  passwordChangedAt DateTime?
+
+  // 메타데이터
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 사용자 프로필 확장
+  profile     UserProfile?
+
+  // 사용자 설정
+  settings    UserSettings?
+
+  // 🔥 연관 관계
+  transactions     Transaction[]
+  courseProgress   UserCourseProgress[]
+  enrollments      Enrollment[]
+  comments         Comment[]
+
+  @@map("users")
+}
+
+// 소셜 계정 연결 정보
+model SocialAccount {
+  id           String @id @default(cuid())
+  userId       String
+  provider     String // 'google', 'github' 등
+  providerId   String // 소셜 플랫폼의 사용자 ID
+  providerData Json?  // 추가 소셜 데이터
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@map("social_accounts")
+}
+
+// 사용자 프로필 - 확장 가능
+model UserProfile {
+  id          String @id @default(cuid())
+  userId      String @unique
+  bio         String?
+  location    String?
+  website     String?
+  dateOfBirth DateTime?
+  phone       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+// 사용자 설정
+model UserSettings {
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  theme              String  @default("light") // light, dark, system
+  language           String  @default("ko")
+  timezone           String  @default("Asia/Seoul")
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+  smsNotifications   Boolean @default(false)
+  twoFactorEnabled   Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+// 리프레시 토큰 저장 (옵션 - Redis 대신 DB 사용 시)
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("refresh_tokens")
+}
+
+// 로그인 히스토리 (보안 감사용)
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  provider  String?  // 'local', 'google', 'github'
+
+  createdAt DateTime @default(now())
+
+  @@map("login_history")
+}
+
+
+
+
+model Transaction {
+  transactionId    String  @id @default(uuid())
+  userId           String
+  dateTime         DateTime @default(now())
+  courseId         String
+  paymentProvider  String
+  amount           Int
+
+  // 🔥 관계 설정 (강의와 연결)
+  course  Course  @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("transactions")
+}
+
+model UserCourseProgress {
+  userId              String
+  courseId            String
+  enrollmentDate      DateTime @default(now())
+  overallProgress     Float   @default(0)
+  lastAccessedTimestamp DateTime @default(now())
+  sections            Json
+
+  // 🔥 관계 설정
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
+
+  @@id([userId, courseId])
+  @@map("user_course_progress")
+}
+
+model Course {
+  courseId    String    @id @default(uuid())
+  teacherId   String
+  teacherName String
+  title       String
+  description String?
+  category    String
+  image       String?
+  price       Int?
+  level       Level
+  status      CourseStatus
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // 🔥 관계 설정
+  sections        Section[]
+  transactions    Transaction[]
+  userCourseProgress UserCourseProgress[]
+  enrollments    Enrollment[]
+  comments       Comment[]
+
+  @@map("courses")
+}
+
+model Section {
+  sectionId         String    @id @default(uuid())
+  courseId          String
+  course           Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
+  sectionTitle     String
+  sectionDescription String?
+  chapters        Chapter[]
+
+  @@map("sections")
+}
+
+model Chapter {
+  chapterId  String @id @default(uuid())
+  sectionId  String
+  section    Section @relation(fields: [sectionId], references: [sectionId], onDelete: Cascade)
+  type       ChapterType
+  title      String
+  content    String
+
+  comments   Comment[]
+  video      String?
+
+  @@map("chapters")
+}
+
+model Comment {
+  commentId   String @id @default(uuid())
+  userId      String
+  chapterId   String
+  text        String
+  timestamp   DateTime @default(now())
+
+  // 🔥 관계 설정
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [chapterId], onDelete: Cascade)
+
+  Course Course[]
+  @@map("comments")
+}
+
+model Enrollment {
+  userId      String
+  courseId    String
+  enrolledAt  DateTime @default(now())
+
+  // 🔥 관계 설정
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
+
+  @@id([userId, courseId])
+  @@map("enrollments")
+}

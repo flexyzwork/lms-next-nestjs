@@ -1,0 +1,72 @@
+{
+  "name": "@apps/api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsup --clean",
+    "dev": "tsup --watch & nodemon",
+    "lint": "eslint .",
+    "start": "node dist/index"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.826.0",
+    "@aws-sdk/s3-request-presigner": "^3.826.0",
+    "@packages/auth": "workspace:^",
+    "@packages/database": "workspace:^",
+    "@packages/queue": "workspace:^",
+    "@prisma/client": "^6.9.0",
+    "@types/multer": "^1.4.13",
+    "aws-sdk": "^2.1692.0",
+    "body-parser": "^2.2.0",
+    "bullmq": "^5.53.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "dynamoose": "^4.0.4",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "2.0.1",
+    "node-fetch": "^3.3.2",
+    "pluralize": "^8.0.0",
+    "serverless-http": "^3.2.0",
+    "stripe": "^18.2.1",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.56"
+  },
+  "devDependencies": {
+    "@aws-sdk/types": "^3.821.0",
+    "@packages/eslint-config": "workspace:^",
+    "@packages/typescript-config": "workspace:^",
+    "@swc/core": "^1.11.31",
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^22.15.30",
+    "@types/node-fetch": "^2.6.12",
+    "@types/pluralize": "^0.0.33",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.2",
+    "cpx": "^1.5.0",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.9.0",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "dist"
+    ],
+    "ext": "js",
+    "exec": "node dist/index.js"
+  }
+}

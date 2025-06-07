@@ -1,0 +1,33 @@
+{
+  "name": "@packages/auth",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@packages/eslint-config": "workspace:^",
+    "@packages/typescript-config": "workspace:^",
+    "@swc/core": "^1",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

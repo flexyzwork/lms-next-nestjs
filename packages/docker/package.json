@@ -1,0 +1,14 @@
+{
+  "name": "@packages/docker",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "exports": {},
+  "publishConfig": {},
+  "scripts": {
+    "dev": "docker compose up",
+    "db:reset": "docker compose rm --force --stop postgres && docker compose up -d"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

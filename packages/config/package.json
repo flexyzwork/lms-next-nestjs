@@ -1,0 +1,51 @@
+{
+  "name": "@packages/config",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup --clean",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint .",
+    "start": "node dist/index"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/config": "^3.3.0",
+    "@nestjs/jwt": "^10.2.0",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.4.0",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.0",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.56"
+  },
+  "devDependencies": {
+    "@packages/eslint-config": "workspace:^",
+    "@packages/typescript-config": "workspace:^",
+    "@swc/core": "^1",
+    "@types/node": "^22.9.0",
+    "nodemon": "^3",
+    "tsup": "^8"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "dist"
+    ],
+    "ext": "js",
+    "exec": "node dist/index.js"
+  }
+}

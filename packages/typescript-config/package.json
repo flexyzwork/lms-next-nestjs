@@ -1,0 +1,17 @@
+{
+  "name": "@packages/typescript-config",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "exports": {
+    "./base.json": "./base.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {
+    "@tsconfig/node20": "^20.1.4"
+  }
+}
