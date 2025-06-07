@@ -7,6 +7,7 @@ import type { User } from './interfaces/user.interface';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { ZodBody } from './decorators/zod-body.decorator';
+import { IS_PUBLIC_KEY } from './decorators/public.decorator';
 
 // 순수 스키마 (클라이언트와 서버 공통)
 import {
@@ -47,10 +48,11 @@ import {
 } from './schemas/auth.schema';
 
 export {
+  type User,
   Public,
   ZodBody,
-  type User,
   CurrentUser,
+  IS_PUBLIC_KEY,
 
   // NestJS 서버 전용
   AllExceptionsFilter,
