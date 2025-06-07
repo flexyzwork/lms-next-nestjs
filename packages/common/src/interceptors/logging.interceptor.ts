@@ -5,7 +5,6 @@ import {
   CallHandler,
   Logger,
 } from '@nestjs/common';
-import * as express from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
@@ -19,7 +18,7 @@ export class LoggingInterceptor implements NestInterceptor {
       ip?: string;
       get?: (header: string) => string | undefined;
     };
-    
+
     const method = request.method || 'UNKNOWN';
     const url = request.url || 'unknown';
     const ip = expressRequest.ip || '';

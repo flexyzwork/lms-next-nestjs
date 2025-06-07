@@ -5,6 +5,11 @@
     "declaration": true,
     "declarationMap": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "../common/src/guards",
+    "../common/src/interfaces",
+    "../common/src/schemas/auth.schema.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

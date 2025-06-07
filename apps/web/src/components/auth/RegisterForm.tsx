@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterDto, AuthApiClient } from '@packages/auth';
+import { AuthApiClient } from '@packages/auth';
+import { z } from 'zod';
+import { registerSchema, type RegisterDto } from '@packages/common';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
@@ -16,21 +18,21 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset
-  } = useForm<RegisterDto>({
+  } = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema)
   });
 
   const onSubmit = async (data: RegisterDto) => {
     setIsLoading(true);
     try {
-      const response = await authApi.register(data);
-      
+      const response = await authApi.register(data as any);
+
       // 성공 응답 처리
       if (response && response.success) {
         onSuccess?.(response);
@@ -40,17 +42,17 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      
+
       // 에러 메시지 추출
       let errorMessage = '회원가입에 실패했습니다';
-      
+
       if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
         // Zod validation 에러
         errorMessage = error.errors.map((err: any) => err.message).join(', ');
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);

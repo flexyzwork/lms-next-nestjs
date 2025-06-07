@@ -1,0 +1,28 @@
+### API 테스트 - 헬스체크
+GET http://localhost:4001/health
+
+### API 테스트 - 메인 페이지
+GET http://localhost:4001/
+
+### API 테스트 - 강의 목록 조회
+GET http://localhost:4001/api/v1/courses
+
+### API 테스트 - 강의 목록 조회 (카테고리 필터)
+GET http://localhost:4001/api/v1/courses?category=programming
+
+### API 테스트 - 특정 강의 조회
+GET http://localhost:4001/api/v1/courses/test-course-id
+
+### API 테스트 - 강의 생성
+POST http://localhost:4001/api/v1/courses
+Content-Type: application/json
+
+{
+  "teacherId": "550e8400-e29b-41d4-a716-446655440000",
+  "teacherName": "김강사"
+}
+
+### API 테스트 - Swagger 문서
+GET http://localhost:4001/api/v1
+
+###

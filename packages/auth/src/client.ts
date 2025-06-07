@@ -8,7 +8,7 @@ export class AuthApiClient {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}/api/v1/auth${endpoint}`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
@@ -23,26 +23,28 @@ export class AuthApiClient {
       // 오류 응답 처리
       const errorMessage = data.message || data.error || '요청에 실패했습니다';
       const error = new Error(errorMessage);
-      
+
       // 추가 오류 정보 전달
       if (data.errors) {
         (error as any).errors = data.errors;
       }
-      
+
       throw error;
     }
 
     return data;
   }
 
-  async register(data: import('./schemas').RegisterDto) {
+  async register(
+    data: import('../../common/src/schemas/auth.schema').RegisterDto
+  ) {
     return this.request('/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async login(data: import('./schemas').LoginDto) {
+  async login(data: import('../../common/src/schemas/auth.schema').LoginDto) {
     return this.request('/login', {
       method: 'POST',
       body: JSON.stringify(data),
