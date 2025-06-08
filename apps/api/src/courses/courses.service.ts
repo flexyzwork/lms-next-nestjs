@@ -8,7 +8,7 @@ import { CreateCourseDto, UpdateCourseDto, UploadVideoUrlDto } from './dto/cours
 
 /**
  * 📚 강의 관리 서비스
- * 
+ *
  * 주요 기능:
  * - 강의 CRUD 작업
  * - 강의 목록 조회 (카테고리별 필터링)
@@ -22,8 +22,8 @@ export class CoursesService {
 
   constructor(private readonly prismaService: PrismaService) {
     // S3 클라이언트 초기화
-    this.s3Client = new S3Client({ 
-      region: process.env.AWS_REGION || 'ap-northeast-2' 
+    this.s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'ap-northeast-2'
     });
   }
 
@@ -34,8 +34,8 @@ export class CoursesService {
     try {
       this.logger.log(`강의 목록 조회 시작 - 카테고리: ${category || '전체'}`);
 
-      const whereClause = category && category !== 'all' 
-        ? { category: String(category) } 
+      const whereClause = category && category !== 'all'
+        ? { category: String(category) }
         : undefined;
 
       const courses = await this.prismaService.course.findMany({
@@ -47,9 +47,9 @@ export class CoursesService {
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        // orderBy: {
+        //   createdAt: 'desc',
+        // },
       });
 
       this.logger.log(`강의 목록 조회 완료 - ${courses.length}개 강의 반환`);
@@ -76,12 +76,12 @@ export class CoursesService {
         where: { courseId },
         include: {
           sections: {
-            include: { 
-              chapters: true 
+            include: {
+              chapters: true
             },
-            orderBy: {
-              createdAt: 'asc',
-            },
+            // orderBy: {
+            //   createdAt: 'asc',
+            // },
           },
         },
       });
@@ -104,7 +104,7 @@ export class CoursesService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       this.logger.error(`강의 조회 중 오류 발생 - ID: ${courseId}`, error);
       throw new BadRequestException('강의를 조회하는 중 오류가 발생했습니다');
     }
@@ -155,8 +155,8 @@ export class CoursesService {
    * ✏️ 강의 정보 수정 (트랜잭션 적용)
    */
   async updateCourse(
-    courseId: string, 
-    updateCourseDto: UpdateCourseDto, 
+    courseId: string,
+    updateCourseDto: UpdateCourseDto,
     userId: string,
     file?: Express.Multer.File
   ) {
@@ -167,10 +167,10 @@ export class CoursesService {
       const existingCourse = await this.prismaService.course.findUnique({
         where: { courseId },
         include: {
-          sections: { 
-            include: { 
-              chapters: true 
-            } 
+          sections: {
+            include: {
+              chapters: true
+            }
           },
         },
       });
@@ -278,15 +278,15 @@ export class CoursesService {
         // 최종 업데이트된 강의 반환
         return await tx.course.findUnique({
           where: { courseId },
-          include: { 
-            sections: { 
-              include: { 
-                chapters: true 
+          include: {
+            sections: {
+              include: {
+                chapters: true
               },
-              orderBy: {
-                createdAt: 'asc',
-              },
-            } 
+              // orderBy: {
+              //   createdAt: 'asc',
+              // },
+            }
           },
         });
       });
@@ -301,7 +301,7 @@ export class CoursesService {
       if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
         throw error;
       }
-      
+
       this.logger.error(`강의 수정 중 오류 발생 - ID: ${courseId}`, error);
       throw new BadRequestException('강의를 수정하는 중 오류가 발생했습니다');
     }
@@ -329,8 +329,8 @@ export class CoursesService {
       }
 
       // 강의 삭제 (Cascade로 관련 데이터도 함께 삭제됨)
-      await this.prismaService.course.delete({ 
-        where: { courseId } 
+      await this.prismaService.course.delete({
+        where: { courseId }
       });
 
       this.logger.log(`강의 삭제 완료 - ID: ${courseId}, 제목: ${course.title}`);
@@ -346,7 +346,7 @@ export class CoursesService {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
-      
+
       this.logger.error(`강의 삭제 중 오류 발생 - ID: ${courseId}`, error);
       throw new BadRequestException('강의를 삭제하는 중 오류가 발생했습니다');
     }
@@ -385,12 +385,12 @@ export class CoursesService {
 
       // 미리 서명된 URL 생성 (5분 유효)
       const command = new PutObjectCommand(s3Params);
-      const uploadUrl = await getSignedUrl(this.s3Client, command, { 
+      const uploadUrl = await getSignedUrl(this.s3Client, command, {
         expiresIn: 300 // 5분
       });
 
       // CloudFront 도메인을 통한 비디오 URL 생성
-      const videoUrl = process.env.CLOUDFRONT_DOMAIN 
+      const videoUrl = process.env.CLOUDFRONT_DOMAIN
         ? `${process.env.CLOUDFRONT_DOMAIN}/videos/${uniqueId}/${fileName}`
         : `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/videos/${uniqueId}/${fileName}`;
 
@@ -409,7 +409,7 @@ export class CoursesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       this.logger.error('비디오 업로드 URL 생성 중 오류 발생', error);
       throw new BadRequestException('비디오 업로드 URL을 생성하는 중 오류가 발생했습니다');
     }

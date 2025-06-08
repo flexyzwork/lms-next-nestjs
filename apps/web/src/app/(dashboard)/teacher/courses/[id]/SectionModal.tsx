@@ -3,6 +3,7 @@ import CustomModal from "@/components/CustomModal";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { SectionFormData, sectionSchema } from "@/lib/schemas";
+import { createId } from "@/lib/utils"; // 🆔 CUID2 ID 생성
 import { addSection, closeSectionModal, editSection } from "@/state";
 import { useAppDispatch, useAppSelector } from "@/state/redux";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +11,6 @@ import { X } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 const SectionModal = () => {
   const dispatch = useAppDispatch();
@@ -49,7 +49,7 @@ const SectionModal = () => {
 
   const onSubmit = (data: SectionFormData) => {
     const newSection: Section = {
-      sectionId: section?.sectionId || uuidv4(),
+      sectionId: section?.sectionId || createId(), // 🆔 CUID2 ID 생성
       sectionTitle: data.title,
       sectionDescription: data.description,
       chapters: section?.chapters || [],

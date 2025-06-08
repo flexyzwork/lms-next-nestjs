@@ -3,9 +3,43 @@ import { twMerge } from "tailwind-merge";
 import * as z from "zod";
 import { api } from "../state/api";
 import { toast } from "sonner";
+import { createId as generateCuid2 } from "@paralleldrive/cuid2"; // 🆔 CUID2 직접 사용 (브라우저 호환)
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// 🆔 ID 생성 및 검증 유틸리티 (CUID2 기반)
+export function createId(): string {
+  return generateCuid2();
+}
+
+export function createIds(count: number): string[] {
+  return Array.from({ length: count }, () => generateCuid2());
+}
+
+export function validateId(id: string): boolean {
+  // CUID2는 24자, 첫 글자는 소문자, 나머지는 소문자+숫자
+  const cuid2Regex = /^[a-z][a-z0-9]{23}$/;
+  return typeof id === 'string' && id.length === 24 && cuid2Regex.test(id);
+}
+
+// 임시 ID 생성 (클라이언트 사이드에서 사용)
+export function createTempId(): string {
+  return `temp_${generateCuid2()}`;
+}
+
+// 임시 ID인지 확인
+export function isTempId(id: string): boolean {
+  return id.startsWith('temp_');
+}
+
+// 임시 ID를 실제 ID로 변환
+export function convertTempId(tempId: string): string {
+  if (isTempId(tempId)) {
+    return tempId.replace('temp_', '');
+  }
+  return tempId;
 }
 
 // Convert cents to formatted currency string (e.g., 4999 -> "$49.99")

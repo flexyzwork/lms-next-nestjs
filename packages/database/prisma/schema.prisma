@@ -72,6 +72,7 @@ model User {
   firstName   String?
   lastName    String?
   avatar      String?
+  role        UserRole @default(USER)
   isActive    Boolean  @default(true)
   isVerified  Boolean  @default(false)
 
@@ -249,6 +250,9 @@ model Section {
   course           Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
   sectionTitle     String
   sectionDescription String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   chapters        Chapter[]
 
   @@map("sections")
@@ -261,6 +265,8 @@ model Chapter {
   type       ChapterType
   title      String
   content    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   comments   Comment[]
   video      String?
@@ -274,6 +280,8 @@ model Comment {
   chapterId   String
   text        String
   timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // 🔥 관계 설정
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -287,6 +295,8 @@ model Enrollment {
   userId      String
   courseId    String
   enrolledAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // 🔥 관계 설정
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -90,6 +90,7 @@ export {
   updateUserCourseProgressSchema,
   createCourseSchema,
   updateCourseSchema,
+  updateCourseFormDataSchema, // 🆕 FormData 전용 스키마
   courseQuerySchema,
   type CreateStripePaymentIntentDto,
   type CreateTransactionDto,
@@ -99,6 +100,7 @@ export {
   type UpdateUserCourseProgressDto,
   type CreateCourseDto,
   type UpdateCourseDto,
+  type UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
   type CourseQueryDto,
 
   // Auth 스키마 (클라이언트/서버 공통)

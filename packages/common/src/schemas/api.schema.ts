@@ -45,6 +45,40 @@ export const updateCourseSchema = z.object({
   })).optional(),
 });
 
+// FormData로 전송되는 데이터를 위한 스키마
+export const updateCourseFormDataSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  price: z.string().transform((val) => {
+    if (!val) return undefined;
+    const num = parseFloat(val);
+    if (isNaN(num)) throw new Error('유효한 숫자가 아닙니다');
+    return num;
+  }).optional(),
+  level: z.string().refine((val) => {
+    if (!val) return true;
+    return ['Beginner', 'Intermediate', 'Advanced'].includes(val);
+  }, '유효한 레벨이 아닙니다').optional(),
+  status: z.string().refine((val) => {
+    if (!val) return true;
+    return ['Draft', 'Published'].includes(val);
+  }, '유효한 상태가 아닙니다').optional(),
+  sections: z.string().transform((val) => {
+    if (!val) return undefined;
+    try {
+      const parsed = JSON.parse(val);
+      // 각 section과 chapter에 대해 기본 검증
+      if (!Array.isArray(parsed)) {
+        throw new Error('섹션은 배열이어야 합니다');
+      }
+      return parsed;
+    } catch (error) {
+      throw new Error('섹션 데이터를 파싱할 수 없습니다: ' + error.message);
+    }
+  }).optional(),
+});
+
 export const courseQuerySchema = z.object({
   category: z.string().optional(),
 });
@@ -107,6 +141,7 @@ export type PaginationType = z.infer<typeof paginationSchema>;
 
 export type CreateCourseDto = z.infer<typeof createCourseSchema>;
 export type UpdateCourseDto = z.infer<typeof updateCourseSchema>;
+export type UpdateCourseFormDataDto = z.infer<typeof updateCourseFormDataSchema>; // 🆕 FormData 전용 타입
 export type CourseQueryDto = z.infer<typeof courseQuerySchema>;
 
 export type CreateStripePaymentIntentDto = z.infer<typeof createStripePaymentIntentSchema>;

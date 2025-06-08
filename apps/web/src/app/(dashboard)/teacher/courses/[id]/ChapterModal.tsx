@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ChapterFormData, chapterSchema } from "@/lib/schemas";
+import { createId } from "@/lib/utils"; // 🆔 CUID2 ID 생성
 import { addChapter, closeChapterModal, editChapter } from "@/state";
 import { useAppDispatch, useAppSelector } from "@/state/redux";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,6 @@ import { X } from "lucide-react";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 const ChapterModal = () => {
   const dispatch = useAppDispatch();
@@ -67,7 +67,7 @@ const ChapterModal = () => {
     if (selectedSectionIndex === null) return;
 
     const newChapter: Chapter = {
-      chapterId: chapter?.chapterId || uuidv4(),
+      chapterId: chapter?.chapterId || createId(), // 🆔 CUID2 ID 생성
       title: data.title,
       content: data.content,
       type: data.video ? "Video" : "Text",

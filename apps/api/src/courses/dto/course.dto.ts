@@ -2,12 +2,14 @@ import { z } from 'zod';
 import type {
   CreateCourseDto,
   UpdateCourseDto,
+  UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
   CourseQueryDto,
 } from '@packages/common';
 
 import {
   createCourseSchema,
   updateCourseSchema,
+  updateCourseFormDataSchema, // 🆕 FormData 전용 스키마
   courseQuerySchema,
 } from '@packages/common';
 
@@ -15,11 +17,17 @@ import {
 export {
   createCourseSchema as CreateCourseSchema,
   updateCourseSchema as UpdateCourseSchema,
+  updateCourseFormDataSchema as UpdateCourseFormDataSchema, // 🆕 FormData 전용
   courseQuerySchema as CourseQuerySchema,
 };
 
 // re-export 타입들
-export type { CreateCourseDto, UpdateCourseDto, CourseQueryDto };
+export type {
+  CreateCourseDto,
+  UpdateCourseDto,
+  UpdateCourseFormDataDto, // 🆕 FormData 전용
+  CourseQueryDto,
+};
 
 // 비디오 업로드 관련 (API 전용)
 export const UploadVideoUrlSchema = z.object({

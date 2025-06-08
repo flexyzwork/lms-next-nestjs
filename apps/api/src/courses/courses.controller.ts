@@ -35,12 +35,14 @@ import {
 import {
   CreateCourseSchema,
   UpdateCourseSchema,
+  UpdateCourseFormDataSchema, // 🆕 FormData 전용 스키마
   UploadVideoUrlSchema,
   CourseQuerySchema,
 } from './dto/course.dto';
 import type {
   CreateCourseDto,
   UpdateCourseDto,
+  UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
   UploadVideoUrlDto,
   CourseQueryDto,
 } from './dto/course.dto';
@@ -163,8 +165,8 @@ export class CoursesController {
   @ApiBearerAuth()
   async updateCourse(
     @Param('courseId') courseId: string,
-    @Body(new ZodValidationPipe(UpdateCourseSchema))
-    updateCourseDto: UpdateCourseDto,
+    @Body(new ZodValidationPipe(UpdateCourseFormDataSchema)) // 🆕 FormData 전용 스키마 사용
+    updateCourseDto: UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
     @UploadedFile() file: Express.Multer.File | undefined
     // @CurrentUser() user: User, // 임시 비활성화
   ) {
