@@ -4,7 +4,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 import { PrismaService } from '@packages/database';
-import { CreateCourseDto, UpdateCourseDto, UploadVideoUrlDto } from './dto/course.dto';
+import { CreateCourseDto, UpdateCourseDto, UpdateCourseFormDataDto, UploadVideoUrlDto } from './dto/course.dto';
 
 /**
  * 📚 강의 관리 서비스
@@ -156,7 +156,7 @@ export class CoursesService {
    */
   async updateCourse(
     courseId: string,
-    updateCourseDto: UpdateCourseDto,
+    updateCourseDto: UpdateCourseFormDataDto,
     userId: string,
     file?: Express.Multer.File
   ) {
@@ -232,8 +232,8 @@ export class CoursesService {
             description: updateData.description,
             category: updateData.category,
             price: updateData.price,
-            level: updateData.level,
-            status: updateData.status,
+            level: updateData.level as any, // Type assertion since we know the form data is validated
+            status: updateData.status as any, // Type assertion since we know the form data is validated
           },
         });
 

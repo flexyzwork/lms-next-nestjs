@@ -73,8 +73,9 @@ export const updateCourseFormDataSchema = z.object({
         throw new Error('섹션은 배열이어야 합니다');
       }
       return parsed;
-    } catch (error) {
-      throw new Error('섹션 데이터를 파싱할 수 없습니다: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+      throw new Error('섹션 데이터를 파싱할 수 없습니다: ' + errorMessage);
     }
   }).optional(),
 });

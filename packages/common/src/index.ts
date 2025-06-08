@@ -29,6 +29,7 @@ import {
   createCourseSchema,
   updateCourseSchema,
   courseQuerySchema,
+  updateCourseFormDataSchema,
   type CreateStripePaymentIntentDto,
   type CreateTransactionDto,
   type TransactionQueryDto,
@@ -38,6 +39,7 @@ import {
   type CreateCourseDto,
   type UpdateCourseDto,
   type CourseQueryDto,
+  type UpdateCourseFormDataDto,
 } from './schemas/api.schema';
 
 // Auth 스키마 (클라이언트/서버 공통)
@@ -50,16 +52,16 @@ import {
 } from './schemas/auth.schema';
 
 // ID 생성 유틸리티
-import { 
-  generateId, 
-  generateIds, 
-  isValidCuid2, 
+import {
+  generateId,
+  generateIds,
+  isValidCuid2,
   isLegacyId,
   detectIdType,
   migrateToNewId,
-  sortCuid2Ids, 
-  generateTypedId, 
-  type Cuid2 
+  sortCuid2Ids,
+  generateTypedId,
+  type Cuid2,
 } from './utils/id.utils';
 
 export {
@@ -77,7 +79,7 @@ export {
   // 공통 스키마 (클라이언트/서버 공통)
   sortOrderSchema,
   idSchema, // 🆔 메인 ID 스키마
-  uuidSchema, // 호환성을 위한 이름 유지 
+  uuidSchema, // 호환성을 위한 이름 유지
   cuid2Schema, // 호환성을 위한 이름 유지
   paginationSchema,
 
