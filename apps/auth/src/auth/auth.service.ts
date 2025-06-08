@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PrismaService, RedisService } from '@packages/database';
+import { generateId } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
 import { RegisterDto, LoginDto } from './schemas/auth.schema';
 import {
   JwtPayload,
@@ -553,8 +554,13 @@ export class AuthService {
     provider?: string;
   }): Promise<void> {
     try {
+      const historyId = generateId(); // 🆔 CUID2 ID 생성
+      
       await this.prismaService.loginHistory.create({
-        data,
+        data: {
+          id: historyId, // 🆔 CUID2 ID 직접 지정
+          ...data,
+        },
       });
     } catch (error: unknown) {
       const errorMessage =

@@ -18,11 +18,16 @@ export class ZodValidationPipe implements PipeTransform {
       return parsedValue;
     } catch (error) {
       if (error instanceof ZodError) {
-        this.logger.error(`Validation failed for ${metadata.type}:`);
-        this.logger.error('Object:');
-        this.logger.error({
-          errors: error.errors,
-          receivedData: JSON.stringify(value)
+        this.logger.error(`데이터 검증 실패 - ${metadata.type}:`);
+        this.logger.error('수신된 데이터:', JSON.stringify(value, null, 2));
+        this.logger.error('검증 오류 상세:');
+        error.errors.forEach((err, index) => {
+          this.logger.error(`  ${index + 1}. 필드: ${err.path.join('.') || 'root'}`);
+          this.logger.error(`     코드: ${err.code}`);
+          this.logger.error(`     메시지: ${err.message}`);
+          if (err.code === 'invalid_type') {
+            this.logger.error(`     예상: ${err.expected}, 수신: ${err.received}`);
+          }
         });
 
         const errorMessages = error.errors.map((err) => {
@@ -51,8 +56,10 @@ export class ZodValidationPipe implements PipeTransform {
               message = '올바른 UUID 형식이 아닙니다';
             }
           } else if (err.code === 'custom') {
-            // CUID 검증 실패 등 커스텀 검증 오류
-            if (err.message.includes('ID 형식')) {
+            // CUID2 검증 실패 등 커스텀 검증 오류
+            if (err.message.includes('CUID2')) {
+              message = '올바른 ID 형식이 아닙니다 (CUID2 26자, 예: cm1a2b3c4d5e6f7g8h9i0j1k2l)';
+            } else if (err.message.includes('ID 형식')) {
               message = err.message;
             }
           }
@@ -65,6 +72,12 @@ export class ZodValidationPipe implements PipeTransform {
           };
         });
 
+        // 단일 오류인 경우 간단한 메시지를 사용
+        if (errorMessages.length === 1) {
+          throw new BadRequestException(errorMessages[0].message);
+        }
+        
+        // 여러 오류인 경우 상세 정보 제공
         const errorResponse = {
           message: '입력 데이터 검증에 실패했습니다',
           errors: errorMessages,

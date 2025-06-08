@@ -12,7 +12,9 @@ import { IS_PUBLIC_KEY } from './decorators/public.decorator';
 // 순수 스키마 (클라이언트와 서버 공통)
 import {
   sortOrderSchema,
-  uuidSchema,
+  idSchema,
+  uuidSchema, // 호환성을 위한 이름 유지
+  cuid2Schema, // 호환성을 위한 이름 유지
   paginationSchema,
 } from './schemas/base.schema';
 
@@ -47,6 +49,19 @@ import {
   type AuthUser,
 } from './schemas/auth.schema';
 
+// ID 생성 유틸리티
+import { 
+  generateId, 
+  generateIds, 
+  isValidCuid2, 
+  isLegacyId,
+  detectIdType,
+  migrateToNewId,
+  sortCuid2Ids, 
+  generateTypedId, 
+  type Cuid2 
+} from './utils/id.utils';
+
 export {
   type User,
   Public,
@@ -61,7 +76,9 @@ export {
 
   // 공통 스키마 (클라이언트/서버 공통)
   sortOrderSchema,
-  uuidSchema,
+  idSchema, // 🆔 메인 ID 스키마
+  uuidSchema, // 호환성을 위한 이름 유지 
+  cuid2Schema, // 호환성을 위한 이름 유지
   paginationSchema,
 
   // API 스키마 (클라이언트/서버 공통)
@@ -91,4 +108,15 @@ export {
   type LoginDto,
   type RegisterDto,
   type AuthUser,
+
+  // 🆔 ID 생성 유틸리티
+  generateId,
+  generateIds,
+  isValidCuid2,
+  isLegacyId,
+  detectIdType,
+  migrateToNewId,
+  sortCuid2Ids,
+  generateTypedId,
+  type Cuid2,
 };

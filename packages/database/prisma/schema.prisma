@@ -65,7 +65,7 @@ enum ChapterType {
 
 // 사용자 테이블 - 확장 가능한 구조
 model User {
-  id          String   @id @default(cuid())
+  id          String   @id // 🆔 애플리케이션에서 CUID2 직접 생성
   email       String   @unique
   username    String?  @unique
   password    String?  // 소셜 로그인 사용자는 null
@@ -103,7 +103,7 @@ model User {
 
 // 소셜 계정 연결 정보
 model SocialAccount {
-  id           String @id @default(cuid())
+  id           String @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId       String
   provider     String // 'google', 'github' 등
   providerId   String // 소셜 플랫폼의 사용자 ID
@@ -120,7 +120,7 @@ model SocialAccount {
 
 // 사용자 프로필 - 확장 가능
 model UserProfile {
-  id          String @id @default(cuid())
+  id          String @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId      String @unique
   bio         String?
   location    String?
@@ -138,7 +138,7 @@ model UserProfile {
 
 // 사용자 설정
 model UserSettings {
-  id                 String  @id @default(cuid())
+  id                 String  @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId             String  @unique
   theme              String  @default("light") // light, dark, system
   language           String  @default("ko")
@@ -158,7 +158,7 @@ model UserSettings {
 
 // 리프레시 토큰 저장 (옵션 - Redis 대신 DB 사용 시)
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String   @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId    String
   token     String   @unique
   expiresAt DateTime
@@ -172,7 +172,7 @@ model RefreshToken {
 
 // 로그인 히스토리 (보안 감사용)
 model LoginHistory {
-  id        String   @id @default(cuid())
+  id        String   @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId    String?
   email     String
   success   Boolean
@@ -189,7 +189,7 @@ model LoginHistory {
 
 
 model Transaction {
-  transactionId    String  @id @default(uuid())
+  transactionId    String  @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId           String
   dateTime         DateTime @default(now())
   courseId         String
@@ -218,8 +218,9 @@ model UserCourseProgress {
   @@map("user_course_progress")
 }
 
+
 model Course {
-  courseId    String    @id @default(uuid())
+  courseId    String    @id // 🆔 애플리케이션에서 CUID2 직접 생성
   teacherId   String
   teacherName String
   title       String
@@ -243,7 +244,7 @@ model Course {
 }
 
 model Section {
-  sectionId         String    @id @default(uuid())
+  sectionId         String    @id // 🆔 애플리케이션에서 CUID2 직접 생성
   courseId          String
   course           Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
   sectionTitle     String
@@ -254,7 +255,7 @@ model Section {
 }
 
 model Chapter {
-  chapterId  String @id @default(uuid())
+  chapterId  String @id // 🆔 애플리케이션에서 CUID2 직접 생성
   sectionId  String
   section    Section @relation(fields: [sectionId], references: [sectionId], onDelete: Cascade)
   type       ChapterType
@@ -268,7 +269,7 @@ model Chapter {
 }
 
 model Comment {
-  commentId   String @id @default(uuid())
+  commentId   String @id // 🆔 애플리케이션에서 CUID2 직접 생성
   userId      String
   chapterId   String
   text        String

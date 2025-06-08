@@ -1,17 +1,54 @@
 import { z } from 'zod';
 
-// 기본 검증 스키마들
-// CUID와 UUID 모두 지원하는 ID 스키마
-export const uuidSchema = z.string().refine(
+// 🆔 CUID2 전용 ID 스키마 (애플리케이션에서 직접 생성)
+export const idSchema = z.string().refine(
   (val) => {
-    // UUID 형식 체크
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    // CUID 형식 체크 (c로 시작하는 25자)
-    const cuidRegex = /^c[a-z0-9]{24}$/;
-    return uuidRegex.test(val) || cuidRegex.test(val);
+    // 기본 유효성 검사
+    if (!val || typeof val !== 'string') {
+      return false;
+    }
+    
+    // 길이 우선 체크 (성능 최적화)
+    if (val.length !== 24) {
+      return false;
+    }
+    
+    // CUID2 형식 검증 (24자, 첫 글자는 소문자, 나머지는 소문자+숫자)
+    const cuid2Regex = /^[a-z][a-z0-9]{23}$/;
+    return cuid2Regex.test(val);
   },
-  { message: '올바른 ID 형식이 아닙니다 (UUID 또는 CUID)' }
+  (val) => {
+    if (!val || typeof val !== 'string') {
+      return { message: 'ID는 문자열이어야 합니다' };
+    }
+    
+    if (val.length !== 24) {
+      // 26자인 경우 CUID v1 레거시 ID로 안내
+      if (val.length === 26) {
+        return { 
+          message: `CUID v1 레거시 ID가 감지되었습니다 (${val.length}자). CUID2 형식(24자)으로 변경해주세요. 예: yefj4way7aurp2kamr0bwr8n`
+        };
+      }
+      
+      return { 
+        message: `ID는 정확히 24자여야 합니다 (현재: ${val.length}자, 예: yefj4way7aurp2kamr0bwr8n)`
+      };
+    }
+    
+    const cuid2Regex = /^[a-z][a-z0-9]{23}$/;
+    if (!cuid2Regex.test(val)) {
+      return { 
+        message: '올바른 CUID2 형식이 아닙니다 (소문자로 시작하고 소문자+숫자 24자). 예: yefj4way7aurp2kamr0bwr8n'
+      };
+    }
+    
+    return { message: '알 수 없는 ID 형식 오류' };
+  }
 );
+
+// 기존 이름 호환성을 위한 alias (권장하지 않음, 새 코드에서는 idSchema 사용)
+export const cuid2Schema = idSchema;
+export const uuidSchema = idSchema; // 호환성을 위해 유지하지만 실제로는 CUID2만 허용
 
 export const paginationSchema = z.object({
   page: z

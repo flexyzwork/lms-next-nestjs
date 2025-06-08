@@ -14,6 +14,7 @@ import { AppService } from './app.service';
 import { CoursesModule } from './courses/courses.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { UserCourseProgressModule } from './user-course-progress/user-course-progress.module';
+import { DebugModule } from './debug/debug.module'; // 🔧 개발 환경 전용
 import { PrismaModule, RedisModule } from '@packages/database';
 
 // 가드, 필터, 인터셉터
@@ -43,6 +44,9 @@ import { LoggingInterceptor } from '@packages/common';
     CoursesModule,
     TransactionsModule,
     UserCourseProgressModule,
+    
+    // 🔧 디버깅 모듈 (개발 환경 전용 - 프로덕션에서는 제거)
+    DebugModule,
   ],
   controllers: [AppController],
   providers: [

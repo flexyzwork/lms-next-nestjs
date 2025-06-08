@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@packages/database';
+import { generateId } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
 import { CreateUserDto, UpdateUserDto } from './schemas/user.schema';
 import * as bcrypt from 'bcryptjs';
 
@@ -29,12 +30,22 @@ export class UsersService {
       }
     }
 
+    // 🆔 CUID2 ID 생성
+    const userId = generateId();
+    const profileId = generateId();
+    const settingsId = generateId();
+
+    console.log('🆔 새로운 사용자 ID 생성:', userId);
+    console.log('🆔 프로필 ID 생성:', profileId);
+    console.log('🆔 설정 ID 생성:', settingsId);
+
     // 비밀번호 해시화
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // 사용자 생성
     const user = await this.prismaService.user.create({
       data: {
+        id: userId, // 🆔 CUID2 ID 직접 지정
         email,
         password: hashedPassword,
         username,
@@ -42,10 +53,14 @@ export class UsersService {
         lastName,
         // 기본 프로필과 설정 생성
         profile: {
-          create: {},
+          create: {
+            id: profileId, // 🆔 CUID2 ID 직접 지정
+          },
         },
         settings: {
-          create: {},
+          create: {
+            id: settingsId, // 🆔 CUID2 ID 직접 지정
+          },
         },
       },
       include: {
@@ -172,8 +187,18 @@ export class UsersService {
       }
     }
 
+    // 🆔 CUID2 ID 생성
+    const userId = generateId();
+    const profileId = generateId();
+    const settingsId = generateId();
+    const socialAccountId = generateId();
+
+    console.log('🆔 소셜 사용자 ID 생성:', userId);
+    console.log('🆔 소셜 계정 ID 생성:', socialAccountId);
+
     const user = await this.prismaService.user.create({
       data: {
+        id: userId, // 🆔 CUID2 ID 직접 지정
         email,
         firstName,
         lastName,
@@ -181,13 +206,18 @@ export class UsersService {
         avatar,
         isVerified: true, // 소셜 로그인은 이메일 인증됨으로 간주
         profile: {
-          create: {},
+          create: {
+            id: profileId, // 🆔 CUID2 ID 직접 지정
+          },
         },
         settings: {
-          create: {},
+          create: {
+            id: settingsId, // 🆔 CUID2 ID 직접 지정
+          },
         },
         socialAccounts: {
           create: {
+            id: socialAccountId, // 🆔 CUID2 ID 직접 지정
             provider,
             providerId,
             providerData,
@@ -220,8 +250,13 @@ export class UsersService {
   ) {
     const { providerId, provider, providerData } = socialData;
 
+    // 🆔 CUID2 ID 생성
+    const socialAccountId = generateId();
+    console.log('🆔 소셜 계정 연결 ID 생성:', socialAccountId);
+
     return await this.prismaService.socialAccount.create({
       data: {
+        id: socialAccountId, // 🆔 CUID2 ID 직접 지정
         userId,
         provider,
         providerId,
@@ -320,10 +355,13 @@ export class UsersService {
    * @param profileData 프로필 데이터
    */
   async updateProfile(userId: string, profileData: any) {
+    const profileId = generateId(); // 🆔 CUID2 ID 생성
+    
     return await this.prismaService.userProfile.upsert({
       where: { userId },
       update: profileData,
       create: {
+        id: profileId, // 🆔 CUID2 ID 직접 지정
         userId,
         ...profileData,
       },
@@ -346,10 +384,13 @@ export class UsersService {
         throw new NotFoundException('사용자를 찾을 수 없습니다');
       }
 
+      const settingsId = generateId(); // 🆔 CUID2 ID 생성
+
       return await this.prismaService.userSettings.upsert({
         where: { userId },
         update: settingsData,
         create: {
+          id: settingsId, // 🆔 CUID2 ID 직접 지정
           userId,
           ...settingsData,
         },

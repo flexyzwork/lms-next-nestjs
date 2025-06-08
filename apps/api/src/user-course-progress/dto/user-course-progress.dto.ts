@@ -3,7 +3,7 @@ import {
   chapterProgressSchema,
   sectionProgressSchema,
   updateUserCourseProgressSchema,
-  uuidSchema,
+  idSchema, // 🆔 CUID2 사용
 } from '@packages/common';
 
 import {
@@ -26,14 +26,14 @@ export type {
   UpdateUserCourseProgressDto,
 };
 
-// API 전용 파라미터 스키마들 - UUID와 CUID 모두 지원
+// API 전용 파라미터 스키마들 - 🆔 CUID2 사용
 export const UserCourseProgressParamsSchema = z.object({
-  userId: uuidSchema,
-  courseId: uuidSchema,
+  userId: idSchema,
+  courseId: idSchema,
 });
 
 export const UserEnrolledCoursesParamsSchema = z.object({
-  userId: uuidSchema,
+  userId: idSchema,
 });
 
 export type UserCourseProgressParamsDto = z.infer<
