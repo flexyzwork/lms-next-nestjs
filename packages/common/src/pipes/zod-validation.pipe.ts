@@ -18,7 +18,9 @@ export class ZodValidationPipe implements PipeTransform {
       return parsedValue;
     } catch (error) {
       if (error instanceof ZodError) {
-        this.logger.error(`Validation failed for ${metadata.type}:`, {
+        this.logger.error(`Validation failed for ${metadata.type}:`);
+        this.logger.error('Object:');
+        this.logger.error({
           errors: error.errors,
           receivedData: JSON.stringify(value)
         });
@@ -45,6 +47,13 @@ export class ZodValidationPipe implements PipeTransform {
           } else if (err.code === 'invalid_string') {
             if (err.validation === 'email') {
               message = '올바른 이메일 형식이 아닙니다';
+            } else if (err.validation === 'uuid') {
+              message = '올바른 UUID 형식이 아닙니다';
+            }
+          } else if (err.code === 'custom') {
+            // CUID 검증 실패 등 커스텀 검증 오류
+            if (err.message.includes('ID 형식')) {
+              message = err.message;
             }
           }
 

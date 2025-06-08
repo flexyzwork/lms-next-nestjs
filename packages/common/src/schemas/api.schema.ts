@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { uuidSchema } from './base.schema';
 
 // ==== 기본 스키마 ====
-export const uuidSchema = z.string().uuid();
+// uuidSchema는 base.schema.ts에서 가져와서 UUID와 CUID 모두 지원
 export const emailSchema = z.string().email();
 
 export const sortOrderSchema = z.enum(['asc', 'desc']).default('desc');
