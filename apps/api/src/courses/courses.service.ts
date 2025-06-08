@@ -113,7 +113,7 @@ export class CoursesService {
   /**
    * 📝 새 강의 생성
    */
-  async createCourse(createCourseDto: CreateCourseDto) {
+  async createCourse(createCourseDto: CreateCourseDto, id: string) {
     try {
       this.logger.log(`강의 생성 시작 - 교사: ${createCourseDto.teacherName}`);
 

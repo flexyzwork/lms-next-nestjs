@@ -13,6 +13,7 @@ import {
   Logger,
   HttpStatus,
   HttpCode,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -25,24 +26,24 @@ import {
 import { Throttle } from '@nestjs/throttler';
 
 import { CoursesService } from './courses.service';
-import {
-  Public,
-  JwtAuthGuard,
-  CurrentUser,
-  ZodValidationPipe,
-} from '@packages/common';
+import { ZodValidationPipe, RoleUtils } from '@packages/common';
+
+// 로컬 가드와 데코레이터 사용
+import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import {
   CreateCourseSchema,
   UpdateCourseSchema,
-  UpdateCourseFormDataSchema, // 🆕 FormData 전용 스키마
+  UpdateCourseFormDataSchema,
   UploadVideoUrlSchema,
   CourseQuerySchema,
 } from './dto/course.dto';
 import type {
   CreateCourseDto,
   UpdateCourseDto,
-  UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
+  UpdateCourseFormDataDto,
   UploadVideoUrlDto,
   CourseQueryDto,
 } from './dto/course.dto';
@@ -62,7 +63,7 @@ import type { User } from '@packages/common';
  */
 @ApiTags('강의 관리')
 @Controller('courses')
-// @UseGuards(JwtAuthGuard) // 임시 비활성화
+@UseGuards(ApiJwtAuthGuard) // 컨트롤러 레벨에서 기본 인증 적용
 export class CoursesController {
   private readonly logger = new Logger(CoursesController.name);
 
@@ -106,20 +107,34 @@ export class CoursesController {
   @ApiResponse({ status: 201, description: '강의 생성 성공' })
   @ApiResponse({ status: 400, description: '잘못된 요청 데이터' })
   @ApiResponse({ status: 401, description: '인증 필요' })
+  @ApiResponse({ status: 403, description: '권한 없음' })
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
   async createCourse(
     @Body(new ZodValidationPipe(CreateCourseSchema))
-    createCourseDto: CreateCourseDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    createCourseDto: CreateCourseDto,
+    @CurrentUser() user: User
   ) {
     this.logger.log(
-      `강의 생성 요청 - 교사: ${createCourseDto.teacherName} (${createCourseDto.teacherId})`
+      `강의 생성 요청 - 교사: ${createCourseDto.teacherName} (${createCourseDto.teacherId}), 요청자: ${user.id}, 역할: ${user.role}`
     );
 
-    const result = await this.coursesService.createCourse(createCourseDto);
+    // 권한 검증: 강사 또는 관리자만 강의 생성 가능
+    if (!RoleUtils.canManageCourses(user.role)) {
+      this.logger.warn(`강의 생성 권한 없음 - 사용자: ${user.id}, 역할: ${user.role}`);
+      throw new ForbiddenException({
+        code: 'INSUFFICIENT_PERMISSIONS',
+        message: '강의 생성 권한이 없습니다. 강사 또는 관리자 권한이 필요합니다.',
+        allowedRoles: ['INSTRUCTOR', 'TEACHER', 'ADMIN'],
+        userRole: user.role,
+        isInstructor: RoleUtils.isInstructor(user.role),
+        isAdmin: RoleUtils.isAdmin(user.role)
+      });
+    }
 
-    this.logger.log(`강의 생성 완료 - ID: ${result.data.courseId}`);
+    const result = await this.coursesService.createCourse(createCourseDto, user.id);
+
+    this.logger.log(`✅ 강의 생성 완료 - ID: ${result.data.courseId}, 강사: ${user.role}`);
     return result;
   }
 
@@ -165,19 +180,17 @@ export class CoursesController {
   @ApiBearerAuth()
   async updateCourse(
     @Param('courseId') courseId: string,
-    @Body(new ZodValidationPipe(UpdateCourseFormDataSchema)) // 🆕 FormData 전용 스키마 사용
-    updateCourseDto: UpdateCourseFormDataDto, // 🆕 FormData 전용 타입
-    @UploadedFile() file: Express.Multer.File | undefined
-    // @CurrentUser() user: User, // 임시 비활성화
+    @Body(new ZodValidationPipe(UpdateCourseFormDataSchema))
+    updateCourseDto: UpdateCourseFormDataDto,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 ID 사용
-    const userId = 'temp-user-id';
-    this.logger.log(`강의 수정 요청 - ID: ${courseId}, 사용자: ${userId}`);
+    this.logger.log(`강의 수정 요청 - ID: ${courseId}, 사용자: ${user.id}, 역할: ${user.role}`);
 
     const result = await this.coursesService.updateCourse(
       courseId,
       updateCourseDto,
-      userId,
+      user.id,
       file
     );
 
@@ -199,14 +212,12 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: '강의를 찾을 수 없음' })
   @ApiBearerAuth()
   async deleteCourse(
-    @Param('courseId') courseId: string
-    // @CurrentUser() user: User, // 임시 비활성화
+    @Param('courseId') courseId: string,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 ID 사용
-    const userId = 'temp-user-id';
-    this.logger.log(`강의 삭제 요청 - ID: ${courseId}, 사용자: ${userId}`);
+    this.logger.log(`강의 삭제 요청 - ID: ${courseId}, 사용자: ${user.id}, 역할: ${user.role}`);
 
-    const result = await this.coursesService.deleteCourse(courseId, userId);
+    const result = await this.coursesService.deleteCourse(courseId, user.id);
 
     this.logger.log(`강의 삭제 완료 - ID: ${courseId}`);
     return result;
@@ -229,11 +240,11 @@ export class CoursesController {
     @Param('sectionId') sectionId: string,
     @Param('chapterId') chapterId: string,
     @Body(new ZodValidationPipe(UploadVideoUrlSchema))
-    uploadVideoUrlDto: UploadVideoUrlDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    uploadVideoUrlDto: UploadVideoUrlDto,
+    @CurrentUser() user: User
   ) {
     this.logger.log(
-      `비디오 업로드 URL 요청 - 강의: ${courseId}, 챕터: ${chapterId}, 파일: ${uploadVideoUrlDto.fileName}`
+      `비디오 업로드 URL 요청 - 강의: ${courseId}, 챕터: ${chapterId}, 파일: ${uploadVideoUrlDto.fileName}, 사용자: ${user.id}`
     );
 
     const result =

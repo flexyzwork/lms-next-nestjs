@@ -18,8 +18,9 @@ import {
 import { Throttle } from '@nestjs/throttler';
 
 import { UserCourseProgressService } from './user-course-progress.service';
-import { CurrentUser, JwtAuthGuard } from '@packages/common';
 import { ZodValidationPipe } from '@packages/common';
+import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import type {
   UpdateUserCourseProgressDto,
@@ -41,8 +42,6 @@ import {
 
 import type { User } from '@packages/common';
 
-
-
 /**
  * 📈 사용자 강의 진도 관리 컨트롤러
  *
@@ -53,7 +52,7 @@ import type { User } from '@packages/common';
  */
 @ApiTags('사용자 강의 진도')
 @Controller('users/course-progress')
-// @UseGuards(JwtAuthGuard) // 임시 비활성화
+@UseGuards(ApiJwtAuthGuard)
 @ApiBearerAuth()
 export class UserCourseProgressController {
   private readonly logger = new Logger(UserCourseProgressController.name);
@@ -77,13 +76,11 @@ export class UserCourseProgressController {
   @Throttle({ default: { limit: 30, ttl: 60000 } }) // 분당 30회 제한
   async getUserEnrolledCourses(
     @Param(new ZodValidationPipe(UserEnrolledCoursesParamsSchema))
-    params: UserEnrolledCoursesParamsDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    params: UserEnrolledCoursesParamsDto,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 생성
-    const user = { userId: params.userId, role: 'user' } as User;
     this.logger.log(
-      `등록 강의 목록 조회 요청 - 대상: ${params.userId}, 요청자: ${user.userId}`
+      `등록 강의 목록 조회 요청 - 대상: ${params.userId}, 요청자: ${user.id}`
     );
 
     const result = await this.userCourseProgressService.getUserEnrolledCourses(
@@ -113,13 +110,11 @@ export class UserCourseProgressController {
   @Throttle({ default: { limit: 50, ttl: 60000 } }) // 분당 50회 제한
   async getUserCourseProgress(
     @Param(new ZodValidationPipe(UserCourseProgressParamsSchema))
-    params: UserCourseProgressParamsDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    params: UserCourseProgressParamsDto,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 생성
-    const user = { userId: params.userId, role: 'user' } as User;
     this.logger.log(
-      `강의 진도 조회 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.userId}`
+      `강의 진도 조회 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.id}`
     );
 
     const result = await this.userCourseProgressService.getUserCourseProgress(
@@ -154,13 +149,11 @@ export class UserCourseProgressController {
     @Param(new ZodValidationPipe(UserCourseProgressParamsSchema))
     params: UserCourseProgressParamsDto,
     @Body(new ZodValidationPipe(updateUserCourseProgressSchema))
-    updateProgressDto: UpdateUserCourseProgressDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    updateProgressDto: UpdateUserCourseProgressDto,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 생성
-    const user = { userId: params.userId, role: 'user' } as User;
     this.logger.log(
-      `강의 진도 업데이트 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.userId}`
+      `강의 진도 업데이트 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.id}`
     );
 
     const result =

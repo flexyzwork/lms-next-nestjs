@@ -4,27 +4,25 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**
- * 🔒 향상된 JWT 인증 가드
- *
- * 주요 기능:
- * - JWT 토큰 검증 및 사용자 인증
- * - @Public() 데코레이터 지원으로 공개 엔드포인트 허용
- * - 토큰 만료 시 명확한 에러 메시지 제공
- * - 보안 로깅 및 모니터링
- * - 자동 토큰 갱신을 위한 응답 헤더 설정
+ * 🔒 API 서비스용 JWT 인증 가드
+ * 
+ * @packages/common의 JwtAuthGuard와 동일한 기능을 제공하지만
+ * 의존성 주입 문제를 방지하기 위해 로컬에서 정의
  */
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  private readonly logger = new Logger(JwtAuthGuard.name);
+export class ApiJwtAuthGuard extends AuthGuard('jwt') {
+  private readonly logger = new Logger(ApiJwtAuthGuard.name);
 
   constructor(private readonly reflector: Reflector) {
     super();
     
     // Reflector 의존성 주입 확인
     if (!this.reflector) {
-      this.logger.error('Reflector 의존성 주입 실패!');
+      this.logger.error('❌ Reflector 의존성 주입 실패!');
       throw new Error('Reflector가 주입되지 않았습니다. 모듈 설정을 확인해주세요.');
     }
+    
+    this.logger.log('✅ API JWT 인증 가드 초기화 완료');
   }
 
   /**
@@ -33,14 +31,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      // @Public() 데코레이터 확인 (안전한 접근)
-      const isPublic = this.reflector?.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      // @Public() 데코레이터 확인
+      const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
         context.getHandler(),
         context.getClass(),
-      ]) ?? false;
+      ]);
 
       if (isPublic) {
-        this.logger.debug('공개 엔드포인트 접근 - 인증 건너뛰기');
+        this.logger.debug('🌐 공개 엔드포인트 접근 - 인증 건너뛰기');
         return true;
       }
 
@@ -74,7 +72,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       // 에러가 있거나 사용자가 없으면 예외 발생
       if (err || !user) {
         if (!token) {
-          this.logger.warn(`토큰 없음 - IP: ${clientIp}, UA: ${userAgent}`);
+          this.logger.warn(`🚫 토큰 없음 - IP: ${clientIp}, UA: ${userAgent}`);
           throw new UnauthorizedException({
             code: 'NO_TOKEN',
             message: '액세스 토큰이 필요합니다',
@@ -84,7 +82,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
         // 토큰 만료 처리
         if (info?.name === 'TokenExpiredError') {
-          this.logger.warn(`토큰 만료 - IP: ${clientIp}, UA: ${userAgent}`);
+          this.logger.warn(`⏰ 토큰 만료 - IP: ${clientIp}, UA: ${userAgent}`);
           
           // 클라이언트에게 토큰 갱신 필요 알림
           this.setTokenExpiredHeaders(response);
@@ -99,7 +97,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
         // 유효하지 않은 토큰 처리
         if (info?.name === 'JsonWebTokenError') {
-          this.logger.warn(`유효하지 않은 토큰 - IP: ${clientIp}, UA: ${userAgent}`);
+          this.logger.warn(`🔒 유효하지 않은 토큰 - IP: ${clientIp}, UA: ${userAgent}`);
           throw new UnauthorizedException({
             code: 'INVALID_TOKEN',
             message: '유효하지 않은 토큰입니다',
@@ -109,7 +107,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
         // 토큰이 아직 활성화되지 않음
         if (info?.name === 'NotBeforeError') {
-          this.logger.warn(`토큰이 아직 활성화되지 않음 - IP: ${clientIp}`);
+          this.logger.warn(`⏳ 토큰이 아직 활성화되지 않음 - IP: ${clientIp}`);
           throw new UnauthorizedException({
             code: 'TOKEN_NOT_ACTIVE',
             message: '토큰이 아직 활성화되지 않았습니다',
@@ -118,7 +116,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         }
 
         // 기타 인증 오류
-        this.logger.error(`인증 실패 - IP: ${clientIp}, 에러:`, err);
+        this.logger.error(`❌ 인증 실패 - IP: ${clientIp}, 에러:`, err);
         throw err || new UnauthorizedException({
           code: 'AUTH_FAILED',
           message: '인증에 실패했습니다',
@@ -127,7 +125,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       }
 
       // 성공적인 인증 로그
-      this.logger.debug(`인증 성공 - 사용자: ${user.userId || user.email}, IP: ${clientIp}`);
+      this.logger.debug(`✅ 인증 성공 - 사용자: ${user.id || user.email}, IP: ${clientIp}`);
       
       // 토큰 갱신 권장 시점 확인
       this.checkTokenRefreshRecommendation(token, response);
@@ -200,7 +198,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   /**
    * 토큰 갱신 권장 시점 확인
-   * 만료 30분 전이면 클라이언트에게 갱신 권장 헤더 전송
    */
   private checkTokenRefreshRecommendation(token: string | null, response: any): void {
     if (!token) return;
@@ -230,7 +227,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           response.setHeader('X-Refresh-Priority', 'normal');
         }
         
-        this.logger.debug(`토큰 갱신 권장 - 만료까지 ${timeUntilExpiry}초 남음`);
+        this.logger.debug(`💡 토큰 갱신 권장 - 만료까지 ${timeUntilExpiry}초 남음`);
         
         // CORS 헤더 업데이트
         const existingHeaders = response.getHeader('Access-Control-Expose-Headers') || '';
@@ -242,7 +239,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         response.setHeader('Access-Control-Expose-Headers', combinedHeaders);
       }
     } catch (error) {
-      // 토큰 디코딩 실패 시 무시 (보안상 로그 레벨 낮춤)
       this.logger.debug('토큰 만료 시간 확인 실패:', error);
     }
   }

@@ -25,7 +25,7 @@ export class UserCourseProgressService {
    */
   async getUserEnrolledCourses(targetUserId: string, requestUser: User) {
     try {
-      this.logger.log(`등록 강의 목록 조회 시작 - 대상: ${targetUserId}, 요청자: ${requestUser.userId}`);
+      this.logger.log(`등록 강의 목록 조회 시작 - 대상: ${targetUserId}, 요청자: ${requestUser.id}`);
 
       // 권한 검증: 본인 또는 관리자만 조회 가능
       this.validateAccess(targetUserId, requestUser);
@@ -148,8 +148,8 @@ export class UserCourseProgressService {
       this.logger.log(`강의 진도 업데이트 시작 - 사용자: ${targetUserId}, 강의: ${courseId}`);
 
       // 권한 검증: 본인만 수정 가능 (관리자도 직접 수정 불가, 로그 목적)
-      if (targetUserId !== requestUser.userId) {
-        this.logger.warn(`강의 진도 수정 권한 없음 - 대상: ${targetUserId}, 요청자: ${requestUser.userId}`);
+      if (targetUserId !== requestUser.id) {
+        this.logger.warn(`강의 진도 수정 권한 없음 - 대상: ${targetUserId}, 요청자: ${requestUser.id}`);
         throw new ForbiddenException('본인의 학습 진도만 수정할 수 있습니다');
       }
 
@@ -223,11 +223,11 @@ export class UserCourseProgressService {
    * 본인 또는 관리자만 접근 가능
    */
   private validateAccess(targetUserId: string, requestUser: User): void {
-    const isOwner = targetUserId === requestUser.userId;
+    const isOwner = targetUserId === requestUser.id;
     const isAdmin = requestUser.role === 'admin' || requestUser.role === 'teacher';
 
     if (!isOwner && !isAdmin) {
-      this.logger.warn(`접근 권한 없음 - 대상: ${targetUserId}, 요청자: ${requestUser.userId}, 역할: ${requestUser.role}`);
+      this.logger.warn(`접근 권한 없음 - 대상: ${targetUserId}, 요청자: ${requestUser.id}, 역할: ${requestUser.role}`);
       throw new ForbiddenException('이 정보에 접근할 권한이 없습니다');
     }
   }

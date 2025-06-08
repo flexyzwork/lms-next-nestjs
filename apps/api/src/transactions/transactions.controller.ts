@@ -18,8 +18,11 @@ import {
 import { Throttle } from '@nestjs/throttler';
 
 import { TransactionsService } from './transactions.service';
-import { CurrentUser, JwtAuthGuard } from '@packages/common';
 import { ZodValidationPipe } from '@packages/common';
+
+// 로컬 가드와 데코레이터 사용
+import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import type {
   CreateStripePaymentIntentDto,
@@ -45,7 +48,7 @@ import type { User } from '@packages/common';
  */
 @ApiTags('결제 및 트랜잭션')
 @Controller('transactions')
-// @UseGuards(JwtAuthGuard) // 임시 비활성화
+@UseGuards(ApiJwtAuthGuard)
 @ApiBearerAuth()
 export class TransactionsController {
   private readonly logger = new Logger(TransactionsController.name);
@@ -68,13 +71,11 @@ export class TransactionsController {
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 분당 20회 제한
   async listTransactions(
     @Query(new ZodValidationPipe(TransactionQuerySchema))
-    query: TransactionQueryDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    query: TransactionQueryDto,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 생성
-    const user = { userId: 'temp-user-id', role: 'user' } as User;
     this.logger.log(
-      `트랜잭션 목록 조회 요청 - 사용자: ${user.userId}, 조회 대상: ${query.userId || '전체'}`
+      `트랜잭션 목록 조회 요청 - 사용자: ${user.id}, 조회 대상: ${query.userId || '전체'}`
     );
 
     const result = await this.transactionsService.findAllTransactions(
@@ -105,20 +106,18 @@ export class TransactionsController {
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 분당 10회 제한
   async createStripePaymentIntent(
     @Body(new ZodValidationPipe(CreateStripePaymentIntentSchema))
-    createPaymentIntentDto: CreateStripePaymentIntentDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    createPaymentIntentDto: CreateStripePaymentIntentDto,
+    @CurrentUser() user: User
   ) {
-    // 임시로 더미 사용자 생성
-    const user = { userId: 'temp-user-id' } as User;
     this.logger.log(
-      `Stripe 결제 의도 생성 요청 - 사용자: ${user.userId}, 금액: ${createPaymentIntentDto.amount}`
+      `Stripe 결제 의도 생성 요청 - 사용자: ${user.id}, 금액: ${createPaymentIntentDto.amount}`
     );
 
     const result = await this.transactionsService.createStripePaymentIntent(
       createPaymentIntentDto
     );
 
-    this.logger.log(`Stripe 결제 의도 생성 완료 - 사용자: ${user.userId}`);
+    this.logger.log(`Stripe 결제 의도 생성 완료 - 사용자: ${user.id}`);
     return result;
   }
 
@@ -139,11 +138,11 @@ export class TransactionsController {
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 분당 5회 제한 (결제는 제한적)
   async createTransaction(
     @Body(new ZodValidationPipe(CreateTransactionSchema))
-    createTransactionDto: CreateTransactionDto
-    // @CurrentUser() user: User, // 임시 비활성화
+    createTransactionDto: CreateTransactionDto,
+    @CurrentUser() user: User
   ) {
     this.logger.log(
-      `트랜잭션 생성 요청 - 사용자: ${createTransactionDto.userId}, 강의: ${createTransactionDto.courseId}`
+      `트랜잭션 생성 요청 - 사용자: ${createTransactionDto.userId}, 강의: ${createTransactionDto.courseId}, 요청자: ${user.id}`
     );
 
     const result =

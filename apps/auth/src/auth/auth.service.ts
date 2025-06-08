@@ -378,11 +378,12 @@ export class AuthService {
    * @returns 토큰 쌍
    */
   private async generateTokenPair(user: any): Promise<TokenPair> {
+    // 표준 JWT 페이로드 (중복 필드 제거)
     const payload: JwtPayload = {
-      sub: user.id,
-      userId: user.id, // 🔧 추가: 호환성을 위한 userId 필드
+      sub: user.id, // 표준 JWT 'sub' 클레임
       email: user.email,
       username: user.username,
+      role: user.role || 'user',
     };
 
     // 리프레시 토큰용 고유 ID 생성
@@ -392,59 +393,50 @@ export class AuthService {
       tokenId,
     };
 
-    console.log('🔑 JWT 토큰 생성 - Payload:', {
-      sub: payload.sub,
-      userId: payload.userId,
+    this.logger.debug('🔑 JWT 토큰 생성 - 페이로드:', {
+      userId: payload.sub,
       email: payload.email,
       username: payload.username,
+      role: payload.role,
     });
 
-    // 토큰 생성
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('jwt.accessToken.secret'),
-        expiresIn: this.configService.get<string>('jwt.accessToken.expiresIn'),
-      }),
-      this.jwtService.signAsync(refreshPayload, {
-        secret: this.configService.get<string>('jwt.refreshToken.secret'),
-        expiresIn: this.configService.get<string>('jwt.refreshToken.expiresIn'),
-      }),
-    ]);
+    try {
+      // 토큰 생성
+      const [accessToken, refreshToken] = await Promise.all([
+        this.jwtService.signAsync(payload, {
+          secret: this.configService.get<string>('jwt.accessToken.secret'),
+          expiresIn: this.configService.get<string>('jwt.accessToken.expiresIn'),
+        }),
+        this.jwtService.signAsync(refreshPayload, {
+          secret: this.configService.get<string>('jwt.refreshToken.secret'),
+          expiresIn: this.configService.get<string>('jwt.refreshToken.expiresIn'),
+        }),
+      ]);
 
-    console.log('✅ JWT 토큰 생성 완료');
-    console.log(
-      '🔍 생성된 Access Token 미리보기:',
-      accessToken.substring(0, 50) + '...'
-    );
+      this.logger.log(`✅ JWT 토큰 생성 완료 - 사용자: ${user.email}`);
+      this.logger.debug('🔍 생성된 Access Token 미리보기:', accessToken.substring(0, 50) + '...');
 
-    // 🔧 디버깅: 생성된 토큰을 파일에 저장
-    // try {
-    //   const fs = require('fs');
-    //   const debugTokenData = {
-    //     timestamp: new Date().toISOString(),
-    //     userId: user.id,
-    //     email: user.email,
-    //     payload,
-    //     accessToken,
-    //     secret: this.configService.get<string>('jwt.accessToken.secret'),
-    //   };
+      // 리프레시 토큰을 Redis에 저장
+      const refreshExpiresIn = this.parseExpirationTime(
+        this.configService.get<string>('jwt.refreshToken.expiresIn', '7d')
+      );
+      await this.redisService.storeRefreshToken(user.id, tokenId, refreshExpiresIn);
 
-    //   fs.writeFileSync(
-    //     'debug-generated-token.json',
-    //     JSON.stringify(debugTokenData, null, 2)
-    //   );
-    //   console.log('🔍 토큰 디버깅 정보가 debug-generated-token.json에 저장됨');
-    // } catch (error) {
-    //   console.error('토큰 디버깅 파일 저장 실패:', error);
-    // }
+      // 만료 시간 계산
+      const accessExpiresIn = this.parseExpirationTime(
+        this.configService.get<string>('jwt.accessToken.expiresIn', '15m')
+      );
 
-    // 리프레시 토큰을 Redis에 저장
-    const refreshExpiresIn = this.parseExpirationTime(
-      this.configService.get<string>('jwt.refreshToken.expiresIn', '7d') // Default to '7d' if not set
-    );
-    // await this.redisService.storeRefreshToken(user.id, tokenId, refreshExpiresIn);
-
-    return { accessToken, refreshToken };
+      return {
+        accessToken,
+        refreshToken,
+        expiresIn: accessExpiresIn,
+        tokenType: 'Bearer'
+      };
+    } catch (error) {
+      this.logger.error('😱 JWT 토큰 생성 실패:', error);
+      throw new Error(`토큰 생성에 실패했습니다: ${error.message}`);
+    }
   }
 
   /**

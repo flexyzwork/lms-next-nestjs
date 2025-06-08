@@ -1,9 +1,19 @@
 // NestJS 서버용 공통 모듈들
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { TokenRefreshInterceptor } from './interceptors/token-refresh.interceptor';
 import { ZodValidationPipe } from './pipes/zod-validation.pipe';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { User } from './interfaces/user.interface';
+// import { JwtAuthGuard } from './guards/jwt-auth.guard'; // 로컬 구현 사용을 위해 제거
+import type { 
+  User, 
+  UserRole,
+  JwtPayload, 
+  JwtRefreshPayload, 
+  JwtUser, 
+  TokenPair, 
+  AuthenticatedRequest 
+} from './interfaces/user.interface';
+import { RoleUtils } from './interfaces/user.interface';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { ZodBody } from './decorators/zod-body.decorator';
@@ -65,16 +75,30 @@ import {
 } from './utils/id.utils';
 
 export {
+  // 타입 정의
   type User,
+  type UserRole,
+  type JwtPayload,
+  type JwtRefreshPayload,
+  type JwtUser,
+  type TokenPair,
+  type AuthenticatedRequest,
+  
+  // 유틸리티
+  RoleUtils,
+  
+  // 데코레이터
   Public,
   ZodBody,
   CurrentUser,
   IS_PUBLIC_KEY,
 
-  // NestJS 서버 전용
+  // NestJS 서버 전용 (JwtAuthGuard 제거됨 - 로컬 구현 사용)
   AllExceptionsFilter,
   LoggingInterceptor,
+  TokenRefreshInterceptor,
   ZodValidationPipe,
+  // JwtAuthGuard, // 제거됨 - 각 서비스에서 로컬로 구현
 
   // 공통 스키마 (클라이언트/서버 공통)
   sortOrderSchema,
@@ -108,7 +132,6 @@ export {
   // Auth 스키마 (클라이언트/서버 공통)
   loginSchema,
   registerSchema,
-  JwtAuthGuard,
   type LoginDto,
   type RegisterDto,
   type AuthUser,
