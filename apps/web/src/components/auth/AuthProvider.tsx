@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { TokenManager, AuthApiClient, type AuthUser } from '@packages/auth';
+import { TokenManager, AuthApiClient, type AuthUser } from '../../lib/auth-utils';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const checkAuthStatus = async () => {
     try {
       const accessToken = TokenManager.getAccessToken();
-      
+
       if (!accessToken) {
         setIsLoading(false);
         return;
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (email: string, password: string) => {
     try {
       const response = await authApi.login({ email, password });
-      
+
       if (response.success && response.data) {
         if (response.data.tokens) {
           TokenManager.setTokens(
@@ -122,19 +122,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshToken = async () => {
     try {
       const refreshTokenValue = TokenManager.getRefreshToken();
-      
+
       if (!refreshTokenValue) {
         throw new Error('No refresh token available');
       }
 
       const response = await authApi.refreshToken(refreshTokenValue);
-      
+
       if (response.success && response.data) {
         TokenManager.setTokens(
           response.data.accessToken,
           response.data.refreshToken
         );
-        
+
         // 새 토큰으로 프로필 정보 갱신
         const profileResponse = await authApi.getProfile(response.data.accessToken);
         if (profileResponse.success && profileResponse.data) {

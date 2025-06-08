@@ -19,7 +19,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.3",
     "@nestjs/throttler": "^6.4.0",
-    "@packages/auth": "workspace:^",
+
     "@packages/common": "workspace:^",
     "@packages/config": "workspace:^",
     "@packages/database": "workspace:^",

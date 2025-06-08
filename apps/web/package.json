@@ -13,6 +13,7 @@
     "@grpc/proto-loader": "^0.7.15",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^3.9.1",
+    "@packages/schemas": "workspace:^",
     "@packages/auth": "workspace:^",
     "@paralleldrive/cuid2": "^2.2.2",
     "@radix-ui/react-accordion": "^1.2.1",

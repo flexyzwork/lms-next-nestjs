@@ -16,7 +16,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -29,15 +29,15 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
   const onSubmit = async (data: LoginDto) => {
     setIsLoading(true);
     console.log('Login attempt:', { email: data.email, apiUrl: API_BASE_URL });
-    
+
     try {
       const response = await authApi.login(data);
       console.log('Login response:', response);
-      
+
       // 성공 응답 처리
       if (response && response.success && response.data) {
         console.log('성공 응답 데이터:', response.data);
-        
+
         // 토큰 저장
         if (response.data.tokens) {
           TokenManager.setTokens(
@@ -46,7 +46,7 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
           );
           console.log('토큰 저장 완료');
         }
-        
+
         onSuccess?.(response);
         reset();
       } else {
@@ -59,17 +59,17 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
         response: error.response,
         stack: error.stack
       });
-      
+
       // 에러 메시지 추출
       let errorMessage = '로그인에 실패했습니다';
-      
+
       if (error.errors && Array.isArray(error.errors) && error.errors.length > 0) {
         // Zod validation 에러
         errorMessage = error.errors.map((err: any) => err.message).join(', ');
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);
