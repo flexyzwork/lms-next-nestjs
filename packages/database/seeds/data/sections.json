@@ -1,0 +1,66 @@
+[
+  {
+    "sectionId": "a1a2a3a4a5a6a7a8a9a0b1b2",
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "sectionTitle": "React 기초",
+    "sectionDescription": "React의 기본 개념과 컴포넌트 작성법을 배웁니다.",
+    "createdAt": "2025-06-01T09:35:00Z",
+    "updatedAt": "2025-06-08T10:20:00Z"
+  },
+  {
+    "sectionId": "b2b3b4b5b6b7b8b9b0c1c2c3",
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "sectionTitle": "React Hooks",
+    "sectionDescription": "useState, useEffect 등 React Hooks를 자세히 알아봅니다.",
+    "createdAt": "2025-06-01T09:40:00Z",
+    "updatedAt": "2025-06-08T10:25:00Z"
+  },
+  {
+    "sectionId": "c3c4c5c6c7c8c9c0d1d2d3d4",
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "sectionTitle": "Next.js 시작하기",
+    "sectionDescription": "Next.js 프레임워크의 특징과 설치 방법을 배웁니다.",
+    "createdAt": "2025-06-01T09:45:00Z",
+    "updatedAt": "2025-06-08T10:30:00Z"
+  },
+  {
+    "sectionId": "d4d5d6d7d8d9d0e1e2e3e4e5",
+    "courseId": "j3k4l5m6n7o8p9q0r1s2t3u4",
+    "sectionTitle": "TypeScript 기초",
+    "sectionDescription": "TypeScript의 기본 타입과 인터페이스를 배웁니다.",
+    "createdAt": "2025-06-02T10:05:00Z",
+    "updatedAt": "2025-06-07T15:05:00Z"
+  },
+  {
+    "sectionId": "e5e6e7e8e9e0f1f2f3f4f5f6",
+    "courseId": "j3k4l5m6n7o8p9q0r1s2t3u4",
+    "sectionTitle": "고급 TypeScript",
+    "sectionDescription": "제네릭, 유니온 타입, 조건부 타입 등 고급 기능을 다룹니다.",
+    "createdAt": "2025-06-02T10:10:00Z",
+    "updatedAt": "2025-06-07T15:10:00Z"
+  },
+  {
+    "sectionId": "f6f7f8f9f0g1g2g3g4g5g6g7",
+    "courseId": "v5w6x7y8z9a0b1c2d3e4f5g6",
+    "sectionTitle": "Node.js 기초",
+    "sectionDescription": "Node.js의 기본 개념과 모듈 시스템을 배웁니다.",
+    "createdAt": "2025-06-03T11:05:00Z",
+    "updatedAt": "2025-06-08T11:35:00Z"
+  },
+  {
+    "sectionId": "g7g8g9g0h1h2h3h4h5h6h7h8",
+    "courseId": "v5w6x7y8z9a0b1c2d3e4f5g6",
+    "sectionTitle": "Express.js 활용",
+    "sectionDescription": "Express.js를 활용한 웹 서버 구축을 배웁니다.",
+    "createdAt": "2025-06-03T11:10:00Z",
+    "updatedAt": "2025-06-08T11:40:00Z"
+  },
+  {
+    "sectionId": "h8h9h0i1i2i3i4i5i6i7i8i9",
+    "courseId": "h7i8j9k0l1m2n3o4p5q6r7s8",
+    "sectionTitle": "HTML 기초",
+    "sectionDescription": "HTML의 기본 태그와 구조를 배웁니다.",
+    "createdAt": "2025-06-04T09:05:00Z",
+    "updatedAt": "2025-06-08T09:35:00Z"
+  }
+]

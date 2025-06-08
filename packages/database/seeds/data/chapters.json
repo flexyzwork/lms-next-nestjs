@@ -1,0 +1,127 @@
+[
+  {
+    "chapterId": "z1z2z3z4z5z6z7z8z9z0a1a2",
+    "sectionId": "a1a2a3a4a5a6a7a8a9a0b1b2",
+    "type": "Video",
+    "title": "React란 무엇인가?",
+    "content": "React는 사용자 인터페이스를 구축하기 위한 JavaScript 라이브러리입니다. 컴포넌트 기반 아키텍처를 통해 재사용 가능한 UI 요소를 만들 수 있습니다.",
+    "video": "https://example.com/videos/react-intro.mp4",
+    "createdAt": "2025-06-01T09:36:00Z",
+    "updatedAt": "2025-06-08T10:21:00Z"
+  },
+  {
+    "chapterId": "a2a3a4a5a6a7a8a9a0b1b2b3",
+    "sectionId": "a1a2a3a4a5a6a7a8a9a0b1b2",
+    "type": "Text",
+    "title": "JSX 문법 이해하기",
+    "content": "JSX는 JavaScript XML의 줄임말로, JavaScript 코드 안에서 HTML과 유사한 문법을 사용할 수 있게 해주는 확장 문법입니다. React에서 UI를 표현하는 주요 방법입니다.",
+    "createdAt": "2025-06-01T09:37:00Z",
+    "updatedAt": "2025-06-08T10:22:00Z"
+  },
+  {
+    "chapterId": "b3b4b5b6b7b8b9b0c1c2c3c4",
+    "sectionId": "a1a2a3a4a5a6a7a8a9a0b1b2",
+    "type": "Quiz",
+    "title": "React 기초 퀴즈",
+    "content": "{\"questions\":[{\"question\":\"React의 주요 특징은?\",\"options\":[\"가상 DOM\",\"컴포넌트 기반\",\"단방향 데이터 흐름\",\"모든 것\"],\"answer\":3}]}",
+    "createdAt": "2025-06-01T09:38:00Z",
+    "updatedAt": "2025-06-08T10:23:00Z"
+  },
+  {
+    "chapterId": "c4c5c6c7c8c9c0d1d2d3d4d5",
+    "sectionId": "b2b3b4b5b6b7b8b9b0c1c2c3",
+    "type": "Video",
+    "title": "useState Hook 사용법",
+    "content": "useState는 함수형 컴포넌트에서 상태를 관리하기 위한 Hook입니다. 상태 변수와 해당 상태를 업데이트하는 함수를 반환합니다.",
+    "video": "https://example.com/videos/usestate-hook.mp4",
+    "createdAt": "2025-06-01T09:41:00Z",
+    "updatedAt": "2025-06-08T10:26:00Z"
+  },
+  {
+    "chapterId": "d5d6d7d8d9d0e1e2e3e4e5e6",
+    "sectionId": "b2b3b4b5b6b7b8b9b0c1c2c3",
+    "type": "Video",
+    "title": "useEffect Hook 심화",
+    "content": "useEffect는 컴포넌트의 생명주기와 관련된 작업을 수행하는 Hook입니다. 마운트, 업데이트, 언마운트 시점에 특정 작업을 실행할 수 있습니다.",
+    "video": "https://example.com/videos/useeffect-hook.mp4",
+    "createdAt": "2025-06-01T09:42:00Z",
+    "updatedAt": "2025-06-08T10:27:00Z"
+  },
+  {
+    "chapterId": "e6e7e8e9e0f1f2f3f4f5f6f7",
+    "sectionId": "c3c4c5c6c7c8c9c0d1d2d3d4",
+    "type": "Video",
+    "title": "Next.js 설치와 프로젝트 생성",
+    "content": "Next.js 프로젝트를 생성하고 개발 환경을 설정하는 방법을 배웁니다. create-next-app을 사용한 빠른 시작 방법을 다룹니다.",
+    "video": "https://example.com/videos/nextjs-setup.mp4",
+    "createdAt": "2025-06-01T09:46:00Z",
+    "updatedAt": "2025-06-08T10:31:00Z"
+  },
+  {
+    "chapterId": "f7f8f9f0g1g2g3g4g5g6g7g8",
+    "sectionId": "c3c4c5c6c7c8c9c0d1d2d3d4",
+    "type": "Text",
+    "title": "Next.js 라우팅 시스템",
+    "content": "Next.js의 파일 기반 라우팅 시스템을 이해하고, 동적 라우팅과 중첩 라우팅을 구현하는 방법을 학습합니다.",
+    "createdAt": "2025-06-01T09:47:00Z",
+    "updatedAt": "2025-06-08T10:32:00Z"
+  },
+  {
+    "chapterId": "g8g9g0h1h2h3h4h5h6h7h8h9",
+    "sectionId": "d4d5d6d7d8d9d0e1e2e3e4e5",
+    "type": "Video",
+    "title": "TypeScript 기본 타입",
+    "content": "TypeScript의 기본 타입들(string, number, boolean, array, object 등)을 배우고 실제 코드에서 활용하는 방법을 다룹니다.",
+    "video": "https://example.com/videos/typescript-basic-types.mp4",
+    "createdAt": "2025-06-02T10:06:00Z",
+    "updatedAt": "2025-06-07T15:06:00Z"
+  },
+  {
+    "chapterId": "h9h0i1i2i3i4i5i6i7i8i9i0",
+    "sectionId": "d4d5d6d7d8d9d0e1e2e3e4e5",
+    "type": "Text",
+    "title": "인터페이스와 타입 별칭",
+    "content": "TypeScript에서 인터페이스(interface)와 타입 별칭(type alias)을 사용하여 복잡한 타입을 정의하고 관리하는 방법을 학습합니다.",
+    "createdAt": "2025-06-02T10:07:00Z",
+    "updatedAt": "2025-06-07T15:07:00Z"
+  },
+  {
+    "chapterId": "i0i1i2i3i4i5i6i7i8i9i0j1",
+    "sectionId": "e5e6e7e8e9e0f1f2f3f4f5f6",
+    "type": "Video",
+    "title": "제네릭 타입 활용하기",
+    "content": "TypeScript의 제네릭을 사용하여 재사용 가능하고 타입 안전한 코드를 작성하는 방법을 배웁니다.",
+    "video": "https://example.com/videos/typescript-generics.mp4",
+    "createdAt": "2025-06-02T10:11:00Z",
+    "updatedAt": "2025-06-07T15:11:00Z"
+  },
+  {
+    "chapterId": "j1j2j3j4j5j6j7j8j9j0k1k2",
+    "sectionId": "f6f7f8f9f0g1g2g3g4g5g6g7",
+    "type": "Video",
+    "title": "Node.js 모듈 시스템",
+    "content": "Node.js의 CommonJS와 ES6 모듈 시스템을 이해하고, npm 패키지 관리 방법을 배웁니다.",
+    "video": "https://example.com/videos/nodejs-modules.mp4",
+    "createdAt": "2025-06-03T11:06:00Z",
+    "updatedAt": "2025-06-08T11:36:00Z"
+  },
+  {
+    "chapterId": "k2k3k4k5k6k7k8k9k0l1l2l3",
+    "sectionId": "g7g8g9g0h1h2h3h4h5h6h7h8",
+    "type": "Video",
+    "title": "Express.js 라우팅",
+    "content": "Express.js에서 라우팅을 설정하고 미들웨어를 활용하는 방법을 배웁니다.",
+    "video": "https://example.com/videos/express-routing.mp4",
+    "createdAt": "2025-06-03T11:11:00Z",
+    "updatedAt": "2025-06-08T11:41:00Z"
+  },
+  {
+    "chapterId": "l3l4l5l6l7l8l9l0m1m2m3m4",
+    "sectionId": "h8h9h0i1i2i3i4i5i6i7i8i9",
+    "type": "Text",
+    "title": "HTML 구조와 시맨틱 태그",
+    "content": "HTML의 기본 구조를 이해하고, 시맨틱 태그를 활용하여 의미 있는 마크업을 작성하는 방법을 배웁니다.",
+    "createdAt": "2025-06-04T09:06:00Z",
+    "updatedAt": "2025-06-08T09:36:00Z"
+  }
+]

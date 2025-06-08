@@ -19,8 +19,11 @@
     "build:prisma": "prisma generate",
     "migrate": "prisma migrate",
     "seed": "prisma db seed",
+    "seed:dev": "tsx seeds/seed.ts",
     "push": "prisma db push",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "reset": "prisma migrate reset --force",
+    "reset:seed": "prisma migrate reset --force && pnpm seed:dev"
   },
   "dependencies": {
     "@faker-js/faker": "^9.8.0",
@@ -37,10 +40,15 @@
     "@packages/eslint-config": "workspace:^",
     "@packages/typescript-config": "workspace:^",
     "@swc/core": "^1.11.31",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20.19.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.9.0",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.4"
+  },
+  "prisma": {
+    "seed": "tsx seeds/seed.ts"
   },
   "nodemonConfig": {
     "watch": [

@@ -1,0 +1,58 @@
+[
+  {
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "teacherId": "k8x9m2n7p4q5r1s3t6u9v2w5",
+    "teacherName": "김교수",
+    "title": "React & Next.js 마스터 클래스",
+    "description": "React와 Next.js를 활용한 현대적인 웹 애플리케이션 개발을 배우는 종합 과정입니다. 기초부터 고급 기능까지 단계별로 학습하며, 실제 프로젝트를 통해 실무 경험을 쌓을 수 있습니다.",
+    "category": "프론트엔드",
+    "image": "https://images.pexels.com/photos/5905888/pexels-photo-5905888.jpeg",
+    "price": 299000,
+    "level": "Intermediate",
+    "status": "Published",
+    "createdAt": "2025-06-01T09:30:00Z",
+    "updatedAt": "2025-06-08T10:15:00Z"
+  },
+  {
+    "courseId": "j3k4l5m6n7o8p9q0r1s2t3u4",
+    "teacherId": "a1b2c3d4e5f6g7h8i9j0k1l2",
+    "teacherName": "이선생",
+    "title": "TypeScript 완전 정복",
+    "description": "JavaScript의 슈퍼셋인 TypeScript를 완전히 마스터하는 과정입니다. 타입 시스템부터 고급 패턴까지, 안전하고 확장 가능한 코드 작성법을 배웁니다.",
+    "category": "프로그래밍",
+    "image": "https://images.pexels.com/photos/6303596/pexels-photo-6303596.jpeg",
+    "price": 199000,
+    "level": "Beginner",
+    "status": "Published",
+    "createdAt": "2025-06-02T10:00:00Z",
+    "updatedAt": "2025-06-07T15:00:00Z"
+  },
+  {
+    "courseId": "v5w6x7y8z9a0b1c2d3e4f5g6",
+    "teacherId": "k8x9m2n7p4q5r1s3t6u9v2w5",
+    "teacherName": "김교수",
+    "title": "Node.js 백엔드 개발",
+    "description": "Node.js를 활용한 백엔드 개발의 모든 것을 배우는 과정입니다. Express, NestJS, 데이터베이스 연동, API 설계 등을 다룹니다.",
+    "category": "백엔드",
+    "image": "https://images.pexels.com/photos/6001397/pexels-photo-6001397.jpeg",
+    "price": 349000,
+    "level": "Advanced",
+    "status": "Published",
+    "createdAt": "2025-06-03T11:00:00Z",
+    "updatedAt": "2025-06-08T11:30:00Z"
+  },
+  {
+    "courseId": "h7i8j9k0l1m2n3o4p5q6r7s8",
+    "teacherId": "a1b2c3d4e5f6g7h8i9j0k1l2",
+    "teacherName": "이선생",
+    "title": "웹 디자인 기초",
+    "description": "HTML, CSS, JavaScript를 활용한 웹 디자인의 기초를 배우는 과정입니다. 반응형 디자인과 사용자 경험(UX) 원칙도 함께 다룹니다.",
+    "category": "디자인",
+    "image": "https://images.pexels.com/photos/6001397/pexels-photo-6001397.jpeg",
+    "price": 149000,
+    "level": "Beginner",
+    "status": "Draft",
+    "createdAt": "2025-06-04T09:00:00Z",
+    "updatedAt": "2025-06-08T09:30:00Z"
+  }
+]

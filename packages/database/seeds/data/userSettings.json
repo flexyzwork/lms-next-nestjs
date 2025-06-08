@@ -1,0 +1,67 @@
+[
+  {
+    "id": "s1t2u3v4w5x6y7z8a9b0c1d2",
+    "userId": "k8x9m2n7p4q5r1s3t6u9v2w5",
+    "theme": "dark",
+    "language": "ko",
+    "timezone": "Asia/Seoul",
+    "emailNotifications": true,
+    "pushNotifications": true,
+    "smsNotifications": false,
+    "twoFactorEnabled": false,
+    "createdAt": "2025-06-01T09:00:00Z",
+    "updatedAt": "2025-06-08T10:00:00Z"
+  },
+  {
+    "id": "e3f4g5h6i7j8k9l0m1n2o3p4",
+    "userId": "a1b2c3d4e5f6g7h8i9j0k1l2",
+    "theme": "light",
+    "language": "ko",
+    "timezone": "Asia/Seoul",
+    "emailNotifications": true,
+    "pushNotifications": false,
+    "smsNotifications": false,
+    "twoFactorEnabled": true,
+    "createdAt": "2025-06-01T10:00:00Z",
+    "updatedAt": "2025-06-07T14:30:00Z"
+  },
+  {
+    "id": "q5r6s7t8u9v0w1x2y3z4a5b6",
+    "userId": "m3n4o5p6q7r8s9t0u1v2w3x4",
+    "theme": "system",
+    "language": "ko",
+    "timezone": "Asia/Seoul",
+    "emailNotifications": true,
+    "pushNotifications": true,
+    "smsNotifications": true,
+    "twoFactorEnabled": false,
+    "createdAt": "2025-06-02T11:00:00Z",
+    "updatedAt": "2025-06-08T08:15:00Z"
+  },
+  {
+    "id": "c7d8e9f0g1h2i3j4k5l6m7n8",
+    "userId": "y4z5a6b7c8d9e0f1g2h3i4j5",
+    "theme": "light",
+    "language": "ko",
+    "timezone": "Asia/Seoul",
+    "emailNotifications": false,
+    "pushNotifications": true,
+    "smsNotifications": false,
+    "twoFactorEnabled": false,
+    "createdAt": "2025-06-02T12:00:00Z",
+    "updatedAt": "2025-06-07T19:20:00Z"
+  },
+  {
+    "id": "o9p0q1r2s3t4u5v6w7x8y9z0",
+    "userId": "rqkzsk3icjlfs8ayfa0aruxu",
+    "theme": "dark",
+    "language": "ko",
+    "timezone": "Asia/Seoul",
+    "emailNotifications": true,
+    "pushNotifications": true,
+    "smsNotifications": true,
+    "twoFactorEnabled": true,
+    "createdAt": "2025-06-01T08:00:00Z",
+    "updatedAt": "2025-06-08T12:00:00Z"
+  }
+]

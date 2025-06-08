@@ -1,0 +1,26 @@
+[
+  {
+    "transactionId": "tx1a2b3c4d5e6f7g8h9i0j1k2",
+    "userId": "m3n4o5p6q7r8s9t0u1v2w3x4",
+    "dateTime": "2025-06-05T14:30:00Z",
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "paymentProvider": "stripe",
+    "amount": 29900
+  },
+  {
+    "transactionId": "tx2b3c4d5e6f7g8h9i0j1k2l3",
+    "userId": "y4z5a6b7c8d9e0f1g2h3i4j5",
+    "dateTime": "2025-06-06T10:15:00Z",
+    "courseId": "j3k4l5m6n7o8p9q0r1s2t3u4",
+    "paymentProvider": "stripe",
+    "amount": 19900
+  },
+  {
+    "transactionId": "tx3c4d5e6f7g8h9i0j1k2l3m4",
+    "userId": "m3n4o5p6q7r8s9t0u1v2w3x4",
+    "dateTime": "2025-06-07T16:45:00Z",
+    "courseId": "v5w6x7y8z9a0b1c2d3e4f5g6",
+    "paymentProvider": "stripe",
+    "amount": 34900
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "userId": "m3n4o5p6q7r8s9t0u1v2w3x4",
+    "courseId": "x1y2z3a4b5c6d7e8f9g0h1i2",
+    "enrollmentDate": "2025-06-05T14:30:00Z",
+    "overallProgress": 15.5,
+    "lastAccessedTimestamp": "2025-06-08T09:30:00Z",
+    "sections": "[{\"sectionId\":\"a1a2a3a4a5a6a7a8a9a0b1b2\",\"chapters\":[{\"chapterId\":\"z1z2z3z4z5z6z7z8z9z0a1a2\",\"completed\":true},{\"chapterId\":\"a2a3a4a5a6a7a8a9a0b1b2b3\",\"completed\":true},{\"chapterId\":\"b3b4b5b6b7b8b9b0c1c2c3c4\",\"completed\":false}]},{\"sectionId\":\"b2b3b4b5b6b7b8b9b0c1c2c3\",\"chapters\":[{\"chapterId\":\"c4c5c6c7c8c9c0d1d2d3d4d5\",\"completed\":false},{\"chapterId\":\"d5d6d7d8d9d0e1e2e3e4e5e6\",\"completed\":false}]},{\"sectionId\":\"c3c4c5c6c7c8c9c0d1d2d3d4\",\"chapters\":[{\"chapterId\":\"e6e7e8e9e0f1f2f3f4f5f6f7\",\"completed\":false},{\"chapterId\":\"f7f8f9f0g1g2g3g4g5g6g7g8\",\"completed\":false}]}]"
+  },
+  {
+    "userId": "y4z5a6b7c8d9e0f1g2h3i4j5",
+    "courseId": "j3k4l5m6n7o8p9q0r1s2t3u4",
+    "enrollmentDate": "2025-06-06T10:15:00Z",
+    "overallProgress": 25.0,
+    "lastAccessedTimestamp": "2025-06-08T11:15:00Z",
+    "sections": "[{\"sectionId\":\"d4d5d6d7d8d9d0e1e2e3e4e5\",\"chapters\":[{\"chapterId\":\"g8g9g0h1h2h3h4h5h6h7h8h9\",\"completed\":true},{\"chapterId\":\"h9h0i1i2i3i4i5i6i7i8i9i0\",\"completed\":false}]},{\"sectionId\":\"e5e6e7e8e9e0f1f2f3f4f5f6\",\"chapters\":[{\"chapterId\":\"i0i1i2i3i4i5i6i7i8i9i0j1\",\"completed\":false}]}]"
+  },
+  {
+    "userId": "m3n4o5p6q7r8s9t0u1v2w3x4",
+    "courseId": "v5w6x7y8z9a0b1c2d3e4f5g6",
+    "enrollmentDate": "2025-06-07T16:45:00Z",
+    "overallProgress": 5.0,
+    "lastAccessedTimestamp": "2025-06-08T08:00:00Z",
+    "sections": "[{\"sectionId\":\"f6f7f8f9f0g1g2g3g4g5g6g7\",\"chapters\":[{\"chapterId\":\"j1j2j3j4j5j6j7j8j9j0k1k2\",\"completed\":false}]},{\"sectionId\":\"g7g8g9g0h1h2h3h4h5h6h7h8\",\"chapters\":[{\"chapterId\":\"k2k3k4k5k6k7k8k9k0l1l2l3\",\"completed\":false}]}]"
+  }
+]
