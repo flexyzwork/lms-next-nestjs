@@ -1,12 +1,16 @@
 import { z } from 'zod';
 
-// 기본 검증 스키마들
+// ==============================
+// 🔐 인증 관련 스키마들
+// ==============================
+
+// 기본 검증 스키마들 - 더 엄격하고 현실적인 검증
 export const emailSchema = z
   .string()
   .min(1, '이메일을 입력해주세요')
   .email('올바른 이메일 형식이 아닙니다')
   .max(255, '이메일은 255자를 초과할 수 없습니다')
-  .transform((email) => email.toLowerCase().trim());
+  .transform((email) => email.toLowerCase().trim()); // 소문자 변환 및 공백 제거
 
 export const passwordSchema = z
   .string()
@@ -25,8 +29,9 @@ export const usernameSchema = z
     /^[a-zA-Z0-9_-]+$/,
     '사용자명은 영문, 숫자, 언더스코어, 하이픈만 사용할 수 있습니다'
   )
-  .transform((username) => username.toLowerCase().trim());
+  .transform((username) => username.toLowerCase().trim()); // 소문자 변환
 
+// 이름 관련 스키마
 export const nameSchema = z
   .string()
   .min(1, '이름을 입력해주세요')
@@ -34,19 +39,14 @@ export const nameSchema = z
   .regex(/^[가-힣a-zA-Z\s]+$/, '이름은 한글, 영문, 공백만 사용할 수 있습니다')
   .transform((name) => name.trim());
 
+// 전화번호 스키마 (한국 기준)
 export const phoneSchema = z
   .string()
   .regex(
     /^(\+82|0)?(10|11|16|17|18|19)\d{8}$/,
     '올바른 한국 휴대폰 번호 형식이 아닙니다 (예: 010-1234-5678)'
   )
-  .transform((phone) => phone.replace(/[^0-9+]/g, ''));
-
-// 로그인 스키마
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, '비밀번호를 입력해주세요'),
-}).strict();
+  .transform((phone) => phone.replace(/[^0-9+]/g, '')); // 숫자와 + 제외 모든 문자 제거
 
 // 회원가입 스키마
 export const registerSchema = z.object({
@@ -55,6 +55,17 @@ export const registerSchema = z.object({
   username: usernameSchema.optional(),
   firstName: nameSchema.optional(),
   lastName: nameSchema.optional(),
+}).strict();
+
+// 로그인 스키마
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, '비밀번호를 입력해주세요'),
+}).strict();
+
+// 토큰 새로고침 스키마
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, '리프레시 토큰을 입력해주세요'),
 }).strict();
 
 // 비밀번호 변경 스키마
@@ -96,8 +107,9 @@ export const updateProfileSchema = z.object({
 }).strict();
 
 // TypeScript 타입 추출
-export type LoginDto = z.infer<typeof loginSchema>;
 export type RegisterDto = z.infer<typeof registerSchema>;
+export type LoginDto = z.infer<typeof loginSchema>;
+export type RefreshTokenDto = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
@@ -134,4 +146,46 @@ export interface LoginResponse {
 export interface RegisterResponse {
   user: AuthUser;
   message: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user: AuthUser;
+    tokens: AuthTokens;
+  };
+}
+
+// 에러 타입
+export interface AuthError {
+  success: false;
+  message: string;
+  errors?: Array<{
+    field: string;
+    message: string;
+    code: string;
+    received?: string;
+  }>;
+}
+
+// 토큰 페이로드 타입
+export interface TokenPayload {
+  userId: string;
+  email: string;
+  role: 'USER' | 'INSTRUCTOR';
+  tokenId: string;
+  type: 'access' | 'refresh';
+  iat: number;
+  exp: number;
+}
+
+// 세션 정보 타입
+export interface SessionInfo {
+  tokenId: string;
+  userId: string;
+  deviceInfo: string;
+  ipAddress: string;
+  lastUsed: string;
+  createdAt: string;
 }
