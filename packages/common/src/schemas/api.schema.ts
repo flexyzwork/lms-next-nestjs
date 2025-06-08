@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { uuidSchema } from './base.schema';
+import { uuidSchema as baseUuidSchema } from './base.schema';
 
 // ==== 기본 스키마 ====
-// uuidSchema는 base.schema.ts에서 가져와서 UUID와 CUID 모두 지원
+// UUID와 CUID 모두 지원하는 ID 스키마
+export const uuidSchema = baseUuidSchema;
 export const emailSchema = z.string().email();
 
 export const sortOrderSchema = z.enum(['asc', 'desc']).default('desc');
@@ -18,7 +19,7 @@ export const courseLevelSchema = z.enum(['Beginner', 'Intermediate', 'Advanced']
 export const chapterTypeSchema = z.enum(['Text', 'Video', 'Quiz']);
 
 export const createCourseSchema = z.object({
-  teacherId: z.string().uuid('올바른 교사 ID를 입력해주세요'),
+  teacherId: uuidSchema,
   teacherName: z.string().min(1, '교사명은 필수입니다'),
 });
 
@@ -55,27 +56,27 @@ export const createStripePaymentIntentSchema = z.object({
 });
 
 export const createTransactionSchema = z.object({
-  userId: z.string().uuid('올바른 사용자 ID를 입력해주세요'),
-  courseId: z.string().uuid('올바른 강의 ID를 입력해주세요'),
+  userId: uuidSchema,
+  courseId: uuidSchema,
   transactionId: z.string().min(1, '트랜잭션 ID는 필수입니다'),
   amount: z.number().min(0, '금액은 0 이상이어야 합니다'),
   paymentProvider: paymentProviderSchema,
 });
 
 export const transactionQuerySchema = z.object({
-  userId: z.string().uuid().optional(),
+  userId: uuidSchema.optional(),
   limit: z.coerce.number().min(1).max(100).default(10),
   offset: z.coerce.number().min(0).default(0),
 });
 
 // ==== 학습 진도 관련 스키마 ====
 export const chapterProgressSchema = z.object({
-  chapterId: z.string().uuid('올바른 챕터 ID를 입력해주세요'),
+  chapterId: uuidSchema,
   completed: z.boolean(),
 });
 
 export const sectionProgressSchema = z.object({
-  sectionId: z.string().uuid('올바른 섹션 ID를 입력해주세요'),
+  sectionId: uuidSchema,
   chapters: z.array(chapterProgressSchema),
 });
 
