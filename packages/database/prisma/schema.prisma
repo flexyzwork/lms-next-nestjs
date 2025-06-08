@@ -287,8 +287,8 @@ model Comment {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   chapter Chapter @relation(fields: [chapterId], references: [chapterId], onDelete: Cascade)
 
-  Course Course[]
   @@map("comments")
+  Course Course[]
 }
 
 model Enrollment {

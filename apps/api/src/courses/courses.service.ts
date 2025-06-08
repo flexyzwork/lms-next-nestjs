@@ -1,9 +1,9 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
 
 import { PrismaService } from '@packages/database';
+import { generateId } from '@packages/common'; // 🆔 CUID2 생성자 사용
 import { CreateCourseDto, UpdateCourseDto, UpdateCourseFormDataDto, UploadVideoUrlDto } from './dto/course.dto';
 
 /**
@@ -119,7 +119,7 @@ export class CoursesService {
 
       const newCourse = await this.prismaService.course.create({
         data: {
-          courseId: uuidv4(),
+          courseId: generateId(), // 🆔 CUID2 사용
           teacherId: createCourseDto.teacherId,
           teacherName: createCourseDto.teacherName,
           title: '새 강의',
@@ -207,12 +207,12 @@ export class CoursesService {
       // sections 데이터 정규화
       const normalizedSections = Array.isArray(updateData.sections)
         ? updateData.sections.map((section: any) => ({
-            sectionId: section.sectionId || uuidv4(),
+            sectionId: section.sectionId || generateId(), // 🆔 CUID2 사용
             sectionTitle: section.sectionTitle,
             sectionDescription: section.sectionDescription || '',
             chapters: Array.isArray(section.chapters)
               ? section.chapters.map((chapter: any) => ({
-                  chapterId: chapter.chapterId || uuidv4(),
+                  chapterId: chapter.chapterId || generateId(), // 🆔 CUID2 사용
                   type: chapter.type as 'Text' | 'Quiz' | 'Video',
                   title: chapter.title,
                   content: chapter.content || '',
@@ -367,8 +367,8 @@ export class CoursesService {
         throw new BadRequestException('지원하지 않는 비디오 형식입니다. MP4, MOV, AVI, MKV만 지원됩니다.');
       }
 
-      // S3 키 생성 (고유 ID 포함)
-      const uniqueId = uuidv4();
+      // S3 키 생성 (CUID2 고유 ID 포함)
+      const uniqueId = generateId(); // 🆔 CUID2 사용
       const s3Key = `videos/${uniqueId}/${fileName}`;
 
       // S3 업로드 파라미터

@@ -4,14 +4,14 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TokenRefreshInterceptor } from './interceptors/token-refresh.interceptor';
 import { ZodValidationPipe } from './pipes/zod-validation.pipe';
 // import { JwtAuthGuard } from './guards/jwt-auth.guard'; // 로컬 구현 사용을 위해 제거
-import type { 
-  User, 
+import type {
+  User,
   UserRole,
-  JwtPayload, 
-  JwtRefreshPayload, 
-  JwtUser, 
-  TokenPair, 
-  AuthenticatedRequest 
+  JwtPayload,
+  JwtRefreshPayload,
+  JwtUser,
+  TokenPair,
+  AuthenticatedRequest
 } from './interfaces/user.interface';
 import { RoleUtils } from './interfaces/user.interface';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -23,7 +23,7 @@ import { IS_PUBLIC_KEY } from './decorators/public.decorator';
 import {
   sortOrderSchema,
   idSchema,
-  uuidSchema, // 호환성을 위한 이름 유지
+  // uuidSchema, // 호환성을 위한 이름 유지
   cuid2Schema, // 호환성을 위한 이름 유지
   paginationSchema,
 } from './schemas/base.schema';
@@ -66,9 +66,9 @@ import {
   generateId,
   generateIds,
   isValidCuid2,
-  isLegacyId,
+  // isLegacyId,
   detectIdType,
-  migrateToNewId,
+  // migrateToNewId,
   sortCuid2Ids,
   generateTypedId,
   type Cuid2,
@@ -83,10 +83,10 @@ export {
   type JwtUser,
   type TokenPair,
   type AuthenticatedRequest,
-  
+
   // 유틸리티
   RoleUtils,
-  
+
   // 데코레이터
   Public,
   ZodBody,
@@ -103,7 +103,7 @@ export {
   // 공통 스키마 (클라이언트/서버 공통)
   sortOrderSchema,
   idSchema, // 🆔 메인 ID 스키마
-  uuidSchema, // 호환성을 위한 이름 유지
+  // uuidSchema, // 호환성을 위한 이름 유지
   cuid2Schema, // 호환성을 위한 이름 유지
   paginationSchema,
 
@@ -140,9 +140,9 @@ export {
   generateId,
   generateIds,
   isValidCuid2,
-  isLegacyId,
+  // isLegacyId,
   detectIdType,
-  migrateToNewId,
+  // migrateToNewId,
   sortCuid2Ids,
   generateTypedId,
   type Cuid2,

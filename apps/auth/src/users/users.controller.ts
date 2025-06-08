@@ -35,7 +35,7 @@ import {
 } from './schemas/user.schema';
 
 // 기본 스키마
-import { uuidSchema, paginationSchema } from '@packages/common';
+import { paginationSchema } from '@packages/common';
 
 @Controller('users')
 export class UsersController {
@@ -316,26 +316,26 @@ export class UsersController {
   /**
    * 특정 사용자 조회 (관리자용)
    */
-  @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  async getUserById(@Param('id') id: string) {
-    try {
-      const validatedId = uuidSchema.parse(id);
+  // @Get(':id')
+  // @UseGuards(JwtAuthGuard)
+  // async getUserById(@Param('id') id: string) {
+  //   try {
+  //     const validatedId = uuidSchema.parse(id);
 
-      const user = await this.usersService.findById(validatedId);
-      if (!user) {
-        throw new NotFoundException('사용자를 찾을 수 없습니다');
-      }
+  //     const user = await this.usersService.findById(validatedId);
+  //     if (!user) {
+  //       throw new NotFoundException('사용자를 찾을 수 없습니다');
+  //     }
 
-      return {
-        success: true,
-        data: transformUserResponse(user),
-      };
-    } catch (error) {
-      this.logger.error(`사용자 조회 실패: ${error.message}`);
-      throw error;
-    }
-  }
+  //     return {
+  //       success: true,
+  //       data: transformUserResponse(user),
+  //     };
+  //   } catch (error) {
+  //     this.logger.error(`사용자 조회 실패: ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * 사용자 목록 조회 (관리자용)

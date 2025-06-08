@@ -3,7 +3,6 @@ import { idSchema } from './base.schema';
 
 // ==== 기본 스키마 ====
 // 🆔 모든 ID는 CUID2 사용
-export const uuidSchema = idSchema; // 호환성을 위한 이름 유지
 export const emailSchema = z.string().email();
 
 export const sortOrderSchema = z.enum(['asc', 'desc']).default('desc');
@@ -136,7 +135,6 @@ export const registerSchema = z.object({
 });
 
 // ==== 타입 추론 ====
-export type UuidType = z.infer<typeof uuidSchema>;
 export type EmailType = z.infer<typeof emailSchema>;
 export type PaginationType = z.infer<typeof paginationSchema>;
 

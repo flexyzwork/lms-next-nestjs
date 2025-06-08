@@ -1,0 +1,20 @@
+{
+  "name": "lms-development-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "개발용 스크립트 모음",
+  "scripts": {
+    "reset-db": "./scripts/reset-db-cuid2.sh",
+    "test-cuid2": "./scripts/test-cuid2.sh",
+    "setup-dev": "npm run reset-db && npm run test-cuid2",
+    "build:all": "pnpm build --filter='@packages/*'",
+    "build:common": "pnpm build --filter='@packages/common'",
+    "build:database": "pnpm build --filter='@packages/database'",
+    "start:api": "pnpm dev --filter='@apps/api'",
+    "start:auth": "pnpm dev --filter='@apps/auth'",
+    "start:web": "pnpm dev --filter='@apps/web'"
+  },
+  "devDependencies": {
+    "@paralleldrive/cuid2": "^2.2.2"
+  }
+}

@@ -2,7 +2,7 @@
  * 🆔 ID 생성 유틸리티
  * 
  * CUID2를 사용한 안전하고 충돌 방지 ID 생성
- * CUID2는 정확히 26자의 소문자+숫자 조합으로 구성됩니다.
+ * CUID2는 기본적으로 24자의 소문자+숫자 조합으로 구성됩니다.
  */
 
 import { createId } from '@paralleldrive/cuid2';
@@ -45,26 +45,12 @@ export function isValidCuid2(id: string): boolean {
 }
 
 /**
- * 레거시 ID 감지 (26자 CUID v1, UUID 등)
- * @param id 검증할 ID 문자열
- * @returns 레거시 ID인지 여부
- */
-export function isLegacyId(id: string): boolean {
-  // 26자 CUID v1 패턴
-  const cuidV1Regex = /^[a-z][a-z0-9]{25}$/;
-  // UUID 패턴
-  const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-  
-  return cuidV1Regex.test(id) || uuidRegex.test(id);
-}
-
-/**
  * ID 유형 감지
  * @param id 검증할 ID 문자열
  * @returns ID 유형 정보
  */
 export function detectIdType(id: string): {
-  type: 'cuid2' | 'legacy' | 'invalid';
+  type: 'cuid2' | 'invalid';
   length: number;
   valid: boolean;
   message: string;
@@ -87,20 +73,11 @@ export function detectIdType(id: string): {
     };
   }
   
-  if (isLegacyId(id)) {
-    return {
-      type: 'legacy',
-      length: id.length,
-      valid: false,
-      message: '레거시 ID입니다 (CUID v1 또는 UUID). CUID2로 마이그레이션이 필요합니다'
-    };
-  }
-  
   return {
     type: 'invalid',
     length: id.length,
     valid: false,
-    message: `유효하지 않은 ID 형식입니다 (길이: ${id.length}, 예상: 24)`
+    message: `유효하지 않은 ID 형식입니다 (길이: ${id.length}, 예상: 24자 CUID2)`
   };
 }
 
@@ -141,35 +118,4 @@ export type Cuid2 = string & { readonly __brand: unique symbol };
  */
 export function generateTypedId(): Cuid2 {
   return generateId() as Cuid2;
-}
-
-/**
- * 레거시 ID를 CUID2로 마이그레이션하는 헬퍼
- * @param legacyId 기존 ID
- * @returns 새로운 CUID2 ID와 마이그레이션 정보
- */
-export function migrateToNewId(legacyId: string): {
-  newId: string;
-  oldId: string;
-  migrationRequired: boolean;
-  reason: string;
-} {
-  const detection = detectIdType(legacyId);
-  
-  if (detection.type === 'cuid2') {
-    return {
-      newId: legacyId,
-      oldId: legacyId,
-      migrationRequired: false,
-      reason: '이미 유효한 CUID2 ID입니다'
-    };
-  }
-  
-  const newId = generateId();
-  return {
-    newId,
-    oldId: legacyId,
-    migrationRequired: true,
-    reason: detection.message
-  };
 }

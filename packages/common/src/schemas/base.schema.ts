@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-// 🆔 CUID2 전용 ID 스키마 (애플리케이션에서 직접 생성)
+// 🆔 CUID2 전용 ID 스키마 (24자 고정)
+// 모든 새로운 엔티티는 CUID2 사용 필수
 export const idSchema = z.string().refine(
   (val) => {
     // 기본 유효성 검사
@@ -23,13 +24,6 @@ export const idSchema = z.string().refine(
     }
     
     if (val.length !== 24) {
-      // 26자인 경우 CUID v1 레거시 ID로 안내
-      if (val.length === 26) {
-        return { 
-          message: `CUID v1 레거시 ID가 감지되었습니다 (${val.length}자). CUID2 형식(24자)으로 변경해주세요. 예: yefj4way7aurp2kamr0bwr8n`
-        };
-      }
-      
       return { 
         message: `ID는 정확히 24자여야 합니다 (현재: ${val.length}자, 예: yefj4way7aurp2kamr0bwr8n)`
       };
@@ -46,9 +40,8 @@ export const idSchema = z.string().refine(
   }
 );
 
-// 기존 이름 호환성을 위한 alias (권장하지 않음, 새 코드에서는 idSchema 사용)
+// 🆔 CUID2 전용 스키마 (새 코드에서 사용 권장)
 export const cuid2Schema = idSchema;
-export const uuidSchema = idSchema; // 호환성을 위해 유지하지만 실제로는 CUID2만 허용
 
 export const paginationSchema = z.object({
   page: z

@@ -1,10 +1,10 @@
 import { Controller, Get, Param, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { 
-  generateId, 
-  isValidCuid2, 
-  detectIdType, 
-  migrateToNewId 
+import {
+  generateId,
+  isValidCuid2,
+  detectIdType,
+  // migrateToNewId
 } from '@packages/common';
 
 /**
@@ -45,7 +45,7 @@ export class IdDebugController {
   private generateIdsWithCount(count: string) {
     const numIds = count ? parseInt(count, 10) : 5;
     const maxIds = Math.min(numIds, 20); // 최대 20개로 제한
-    
+
     const ids = [];
     const stats = {
       totalGenerated: 0,
@@ -58,7 +58,7 @@ export class IdDebugController {
       try {
         const id = generateId();
         const isValid = isValidCuid2(id);
-        
+
         ids.push({
           id,
           length: id.length,
@@ -75,7 +75,7 @@ export class IdDebugController {
 
         // 길이별 통계
         stats.lengthStats[id.length] = (stats.lengthStats[id.length] || 0) + 1;
-        
+
       } catch (error) {
         this.logger.error(`ID 생성 실패 (${i + 1}번째):`, error);
         ids.push({
@@ -98,7 +98,7 @@ export class IdDebugController {
           ...stats,
           successRate: `${((stats.validCount / stats.totalGenerated) * 100).toFixed(1)}%`,
           expectedLength: 24,
-          allCorrectLength: Object.keys(stats.lengthStats).length === 1 && 
+          allCorrectLength: Object.keys(stats.lengthStats).length === 1 &&
                            Object.keys(stats.lengthStats)[0] === '24'
         }
       },
@@ -121,9 +121,9 @@ export class IdDebugController {
     try {
       const detection = detectIdType(id);
       const isValidCuid2Result = isValidCuid2(id);
-      
+
       // 마이그레이션 정보
-      const migration = migrateToNewId(id);
+      // const migration = migrateToNewId(id);
 
       // 상세 분석
       const analysis = {
@@ -131,7 +131,7 @@ export class IdDebugController {
         length: id.length,
         expectedLength: 24,
         lengthMatch: id.length === 24,
-        
+
         // 문자 구성 분석
         characterAnalysis: {
           firstChar: id.charAt(0),
@@ -151,12 +151,12 @@ export class IdDebugController {
         },
 
         // 마이그레이션 정보
-        migration: {
-          required: migration.migrationRequired,
-          reason: migration.reason,
-          newId: migration.migrationRequired ? migration.newId : null,
-          oldId: migration.oldId
-        }
+        // migration: {
+        //   required: migration.migrationRequired,
+        //   reason: migration.reason,
+        //   newId: migration.migrationRequired ? migration.newId : null,
+        //   oldId: migration.oldId
+        // }
       };
 
       return {
@@ -182,42 +182,42 @@ export class IdDebugController {
   /**
    * 레거시 ID 마이그레이션 도우미
    */
-  @Get('migrate/:legacyId')
-  @ApiOperation({
-    summary: '레거시 ID 마이그레이션',
-    description: '레거시 ID를 새로운 CUID2로 변환합니다.',
-  })
-  @ApiResponse({ status: 200, description: '마이그레이션 완료' })
-  migrateLegacyId(@Param('legacyId') legacyId: string) {
-    this.logger.log(`레거시 ID 마이그레이션 요청: ${legacyId}`);
+  // @Get('migrate/:legacyId')
+  // @ApiOperation({
+  //   summary: '레거시 ID 마이그레이션',
+  //   description: '레거시 ID를 새로운 CUID2로 변환합니다.',
+  // })
+  // @ApiResponse({ status: 200, description: '마이그레이션 완료' })
+  // migrateLegacyId(@Param('legacyId') legacyId: string) {
+  //   this.logger.log(`레거시 ID 마이그레이션 요청: ${legacyId}`);
 
-    try {
-      const result = migrateToNewId(legacyId);
-      
-      return {
-        success: true,
-        message: result.migrationRequired 
-          ? '새로운 CUID2 ID로 마이그레이션되었습니다'
-          : '이미 유효한 CUID2 ID입니다',
-        data: {
-          ...result,
-          recommendation: result.migrationRequired
-            ? `데이터베이스에서 "${result.oldId}"를 "${result.newId}"로 업데이트하세요`
-            : '마이그레이션이 필요하지 않습니다'
-        },
-        timestamp: new Date().toISOString()
-      };
+  //   try {
+  //     // const result = migrateToNewId(legacyId);
 
-    } catch (error) {
-      this.logger.error('마이그레이션 중 오류:', error);
-      return {
-        success: false,
-        error: {
-          message: '마이그레이션 중 오류가 발생했습니다',
-          details: error.message
-        },
-        timestamp: new Date().toISOString()
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       message: result.migrationRequired
+  //         ? '새로운 CUID2 ID로 마이그레이션되었습니다'
+  //         : '이미 유효한 CUID2 ID입니다',
+  //       data: {
+  //         ...result,
+  //         recommendation: result.migrationRequired
+  //           ? `데이터베이스에서 "${result.oldId}"를 "${result.newId}"로 업데이트하세요`
+  //           : '마이그레이션이 필요하지 않습니다'
+  //       },
+  //       timestamp: new Date().toISOString()
+  //     };
+
+  //   } catch (error) {
+  //     this.logger.error('마이그레이션 중 오류:', error);
+  //     return {
+  //       success: false,
+  //       error: {
+  //         message: '마이그레이션 중 오류가 발생했습니다',
+  //         details: error.message
+  //       },
+  //       timestamp: new Date().toISOString()
+  //     };
+  //   }
+  // }
 }
