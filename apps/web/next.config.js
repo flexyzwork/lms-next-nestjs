@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig}  */
 const nextConfig = {
   reactStrictMode: true,
+  // 🔧 workspace 패키지 transpile 설정
+  transpilePackages: ['@packages/schemas'],
+  // 🔧 외부 모듈 측정 비활성화
+  experimental: {
+    esmExternals: 'loose',
+  },
   async rewrites() {
     return [
       {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { TokenManager, AuthApiClient, type AuthUser } from '../../lib/auth-utils';
+import { TokenManager, AuthApiClient, type AuthUser } from '@packages/auth';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';

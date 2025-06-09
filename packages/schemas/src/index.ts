@@ -12,7 +12,10 @@ export * from './auth';
 export * from './api';
 
 // 웹 UI 전용 스키마
-// export * from './ui';
+export * from './ui';
+
+// 유틸리티 클래스들
+export * from './utils';
 
 // 유틸리티 함수들
 export function validateEmail(email: string): { isValid: boolean; errors: string[] } {

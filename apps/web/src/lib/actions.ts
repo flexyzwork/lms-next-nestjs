@@ -1,6 +1,6 @@
 'use server';
 
-import { UploadFormSchema } from './zodSchema';
+import { uploadFormSchema } from './schemas';
 
 export type FormState =
   | {
@@ -12,7 +12,7 @@ export type FormState =
   | undefined;
 
 export async function uploadFile(state: FormState, formData: FormData): Promise<FormState> {
-  const validatedFields = UploadFormSchema.safeParse(Object.fromEntries(formData.entries()));
+  const validatedFields = uploadFormSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
