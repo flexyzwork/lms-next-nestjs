@@ -25,7 +25,7 @@ export const createCourseSchema = z.object({
   title: z.string().min(1, '강의 제목은 필수입니다').max(200, '강의 제목은 200자를 초과할 수 없습니다'),
   description: z.string().min(10, '강의 설명은 최소 10자 이상이어야 합니다').max(2000, '강의 설명은 2000자를 초과할 수 없습니다').optional(),
   category: z.string().min(1, '카테고리는 필수입니다').max(50, '카테고리는 50자를 초과할 수 없습니다'),
-  price: z.number().min(0, '가격은 0 이상이어야 합니다').max(1000000, '가격은 100만원을 초과할 수 없습니다').optional(),
+  price: z.number().min(0, '가격은 0 이상이어야 합니다').max(50000000, '가격은 5천만원을 초과할 수 없습니다').optional(), // 5천만원으로 증가
   level: courseLevelSchema,
   status: courseStatusSchema.default('Draft'),
   image: z.string().url('올바른 이미지 URL 형식이 아닙니다').optional(),
@@ -36,7 +36,7 @@ export const updateCourseSchema = z.object({
   title: z.string().min(1, '강의 제목은 필수입니다').max(200, '강의 제목은 200자를 초과할 수 없습니다').optional(),
   description: z.string().min(10, '강의 설명은 최소 10자 이상이어야 합니다').max(2000, '강의 설명은 2000자를 초과할 수 없습니다').optional(),
   category: z.string().min(1, '카테고리는 필수입니다').max(50, '카테고리는 50자를 초과할 수 없습니다').optional(),
-  price: z.number().min(0, '가격은 0 이상이어야 합니다').max(1000000, '가격은 100만원을 초과할 수 없습니다').optional(),
+  price: z.number().min(0, '가격은 0 이상이어야 합니다').max(50000000, '가격은 5천만원을 초과할 수 없습니다').optional(), // 5천만원으로 증가
   level: courseLevelSchema.optional(),
   status: courseStatusSchema.optional(),
   image: z.string().url('올바른 이미지 URL 형식이 아닙니다').optional(),
@@ -70,11 +70,44 @@ export const paymentProviderSchema = z.enum(['stripe', 'paypal', 'kakao_pay'], {
   errorMap: () => ({ message: '결제 제공자는 stripe, paypal, kakao_pay 중 하나여야 합니다' })
 });
 
+// Stripe Payment Intent 생성 스키마
+export const createStripePaymentIntentSchema = z.object({
+  amount: z.number()
+    .min(0, '결제 금액은 0 이상이어야 합니다')
+    .max(99999999, '결제 금액은 9,999만원을 초과할 수 없습니다 (Stripe KRW 제한)'), // Stripe KRW 제한에 맞춤
+  courseId: idSchema, // 필수 필드로 추가
+  currency: z.string().default('krw'),
+  metadata: z.record(z.string()).optional(),
+}).strict();
+
+// 트랜잭션 조회 쿼리 스키마
+export const transactionQuerySchema = paginationSchema.extend({
+  userId: idSchema.optional(),
+  courseId: idSchema.optional(),
+  paymentProvider: paymentProviderSchema.optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  minAmount: z.string().optional().transform((val) => {
+    if (!val || val === '') return undefined;
+    const num = parseFloat(val);
+    if (isNaN(num) || num < 0) return undefined;
+    return num;
+  }),
+  maxAmount: z.string().optional().transform((val) => {
+    if (!val || val === '') return undefined;
+    const num = parseFloat(val);
+    if (isNaN(num) || num < 0) return undefined;
+    return num;
+  }),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'amount']).default('createdAt'),
+  sortOrder: sortOrderSchema,
+}).strict();
+
 export const createTransactionSchema = z.object({
   userId: idSchema,
   courseId: idSchema,
   transactionId: z.string().min(1, '트랜잭션 ID는 필수입니다').max(100, '트랜잭션 ID는 100자를 초과할 수 없습니다'),
-  amount: z.number().min(0, '금액은 0 이상이어야 합니다').max(1000000, '금액은 100만원을 초과할 수 없습니다'),
+  amount: z.number().min(0, '금액은 0 이상이어야 합니다').max(50000000, '금액은 5천만원을 초과할 수 없습니다'), // 5천만원으로 증가
   paymentProvider: paymentProviderSchema,
 }).strict();
 
@@ -101,6 +134,8 @@ export const updateUserCourseProgressSchema = z.object({
 export type CreateCourseDto = z.infer<typeof createCourseSchema>;
 export type UpdateCourseDto = z.infer<typeof updateCourseSchema>;
 export type CourseQueryDto = z.infer<typeof courseQuerySchema>;
+export type CreateStripePaymentIntentDto = z.infer<typeof createStripePaymentIntentSchema>;
+export type TransactionQueryDto = z.infer<typeof transactionQuerySchema>;
 export type CreateTransactionDto = z.infer<typeof createTransactionSchema>;
 export type ChapterProgressDto = z.infer<typeof chapterProgressSchema>;
 export type SectionProgressDto = z.infer<typeof sectionProgressSchema>;
@@ -108,7 +143,7 @@ export type UpdateUserCourseProgressDto = z.infer<typeof updateUserCourseProgres
 
 // 유틸리티 함수들
 export function validateCoursePrice(price: number): boolean {
-  return price >= 0 && price <= 1000000;
+  return price >= 0 && price <= 50000000; // 5천만원으로 증가
 }
 
 export function calculateCourseProgress(sections: SectionProgressDto[]): number {

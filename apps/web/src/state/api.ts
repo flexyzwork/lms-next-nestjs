@@ -225,11 +225,11 @@ export const api = createApi({
         return `transactions?userId=${userId}`;
       },
     }),
-    createStripePaymentIntent: build.mutation<{ clientSecret: string }, { amount: number }>({
-      query: ({ amount }) => ({
+    createStripePaymentIntent: build.mutation<{ clientSecret: string }, { amount: number; courseId: string }>({
+      query: ({ amount, courseId }) => ({
         url: `/transactions/stripe/payment-intent`,
         method: 'POST',
-        body: { amount },
+        body: { amount, courseId }, // courseId 필드 추가
       }),
     }),
     createTransaction: build.mutation<Transaction, Partial<Transaction>>({

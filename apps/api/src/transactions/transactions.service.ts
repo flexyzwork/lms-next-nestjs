@@ -92,6 +92,9 @@ export class TransactionsService {
 
   /**
    * 💳 Stripe 결제 의도 생성
+   * 
+   * 주의: KRW(한국 원화)는 센트 단위가 없으므로 원 단위 그대로 전달
+   * USD, EUR 등의 통화는 센트 단위로 변환 필요
    */
   async createStripePaymentIntent(createPaymentIntentDto: CreateStripePaymentIntentDto) {
     try {
@@ -105,11 +108,12 @@ export class TransactionsService {
         amount = 50; // 기본 50원
       }
 
-      // Stripe는 센트 단위로 처리하므로 원 단위 금액을 센트로 변환
-      const amountInCents = Math.round(amount * 100);
+      // 한국 원화(KRW)는 센트 단위가 없으므로 그대로 사용
+      // 다른 통화(USD, EUR 등)의 경우에만 센트 변환 필요
+      const amountForStripe = amount; // KRW는 원 단위 그대로 전달
 
       const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: amountInCents,
+        amount: amountForStripe, // KRW는 원 단위 그대로 사용
         currency: 'krw', // 한국 원화
         automatic_payment_methods: {
           enabled: true,
@@ -121,7 +125,7 @@ export class TransactionsService {
         },
       });
 
-      this.logger.log(`Stripe 결제 의도 생성 완료 - ID: ${paymentIntent.id}, 금액: ${amount}원`);
+      this.logger.log(`Stripe 결제 의도 생성 완료 - ID: ${paymentIntent.id}, 금액: ${amount}원 (KRW 원 단위)`);
 
       return {
         message: 'Stripe 결제 의도 생성 성공',

@@ -38,8 +38,10 @@ const StripeProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!course) return;
     const fetchPaymentIntent = async () => {
+      // courseId와 amount를 모두 포함하여 결제 의도 생성
       const result = await createStripePaymentIntent({
         amount: course?.price ?? 9999999999999,
+        courseId: course?.courseId, // 필수 필드 추가
       }).unwrap();
 
       setClientSecret(result.clientSecret);
