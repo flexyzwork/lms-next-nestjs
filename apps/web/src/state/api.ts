@@ -138,7 +138,17 @@ export const api = createApi({
       providesTags: (result, error, id) => [{ type: 'Courses', id }],
     }),
 
-    createCourse: build.mutation<Course, { teacherId: string; teacherName: string }>({
+    createCourse: build.mutation<Course, {
+      teacherId: string;
+      teacherName: string;
+      title: string;
+      category: string;
+      level: 'Beginner' | 'Intermediate' | 'Advanced';
+      description?: string;
+      price?: number;
+      status?: 'Draft' | 'Published';
+      image?: string;
+    }>({
       query: (body) => ({
         url: `courses`,
         method: 'POST',
@@ -148,12 +158,31 @@ export const api = createApi({
     }),
 
     updateCourse: build.mutation<Course, { courseId: string; formData: FormData }>({
-      query: ({ courseId, formData }) => ({
-        url: `courses/${courseId}`,
-        method: 'PUT',
-        body: formData,
-      }),
-      invalidatesTags: (result, error, { courseId }) => [{ type: 'Courses', id: courseId }],
+      query: ({ courseId, formData }) => {
+        console.log('📚 updateCourse API mutation 시작:');
+        console.log('  - 강의 ID:', courseId);
+        console.log('  - FormData 유형:', formData.constructor.name);
+        
+        // FormData 내용 로그 (디버깅용)
+        console.log('  - FormData 내용:');
+        for (const [key, value] of formData.entries()) {
+          if (typeof value === 'string') {
+            console.log(`    ${key}: ${value.length > 50 ? value.substring(0, 50) + '...' : value}`);
+          } else {
+            console.log(`    ${key}: [File] ${(value as File).name}`);
+          }
+        }
+        
+        return {
+          url: `courses/${courseId}`,
+          method: 'PUT',
+          body: formData,
+        };
+      },
+      invalidatesTags: (result, error, { courseId }) => {
+        console.log('🔄 updateCourse 캐시 무효화:', courseId);
+        return [{ type: 'Courses', id: courseId }];
+      },
     }),
 
     deleteCourse: build.mutation<{ message: string }, string>({

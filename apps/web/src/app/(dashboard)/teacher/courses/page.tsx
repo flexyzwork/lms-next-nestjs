@@ -60,6 +60,11 @@ const Courses = () => {
     const result = await createCourse({
       teacherId: user.userId,
       teacherName: user.name || "Unknown Teacher",
+      title: "새 강의",
+      category: "기타",
+      level: "Beginner",
+      description: "새로 생성된 강의입니다. 내용을 편집해주세요.",
+      status: "Draft",
     }).unwrap();
     router.push(`/teacher/courses/${result.courseId}`, {
       scroll: false,

@@ -18,5 +18,5 @@ export const useAuthRefresh = () => {
     const interval = setInterval(refreshToken, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [setToken]);
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { TokenManager, AuthApiClient, type AuthUser } from '@packages/auth';
 
 // API Gateway URL 설정
@@ -36,23 +36,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isAuthenticated = !!user;
 
-  // 초기 로드 시 토큰 확인
-  useEffect(() => {
-    checkAuthStatus();
+  const refreshToken = useCallback(async () => {
+    try {
+      const refreshTokenValue = TokenManager.getRefreshToken();
+
+      if (!refreshTokenValue) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await authApi.refreshToken(refreshTokenValue);
+
+      if (response.success && response.data) {
+        TokenManager.setTokens(
+          response.data.accessToken,
+          response.data.refreshToken
+        );
+
+        // 새 토큰으로 프로필 정보 갱신
+        const profileResponse = await authApi.getProfile(response.data.accessToken);
+        if (profileResponse.success && profileResponse.data) {
+          setUser(profileResponse.data);
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      TokenManager.clearTokens();
+      setUser(null);
+      throw error;
+    }
   }, []);
 
-  // 주기적으로 토큰 갱신
-  useEffect(() => {
-    if (isAuthenticated) {
-      const interval = setInterval(() => {
-        refreshToken();
-      }, 5 * 60 * 1000); // 5분마다 토큰 갱신 시도
-
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated]);
-
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const accessToken = TokenManager.getAccessToken();
 
@@ -80,7 +94,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [refreshToken]);
+
+  // 초기 로드 시 토큰 확인
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  // 주기적으로 토큰 갱신
+  useEffect(() => {
+    if (isAuthenticated) {
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 5 * 60 * 1000); // 5분마다 토큰 갱신 시도
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, refreshToken]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -116,36 +146,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       TokenManager.clearTokens();
       setUser(null);
-    }
-  };
-
-  const refreshToken = async () => {
-    try {
-      const refreshTokenValue = TokenManager.getRefreshToken();
-
-      if (!refreshTokenValue) {
-        throw new Error('No refresh token available');
-      }
-
-      const response = await authApi.refreshToken(refreshTokenValue);
-
-      if (response.success && response.data) {
-        TokenManager.setTokens(
-          response.data.accessToken,
-          response.data.refreshToken
-        );
-
-        // 새 토큰으로 프로필 정보 갱신
-        const profileResponse = await authApi.getProfile(response.data.accessToken);
-        if (profileResponse.success && profileResponse.data) {
-          setUser(profileResponse.data);
-        }
-      }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      TokenManager.clearTokens();
-      setUser(null);
-      throw error;
     }
   };
 

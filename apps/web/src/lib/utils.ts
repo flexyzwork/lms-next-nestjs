@@ -326,24 +326,61 @@ export const createCourseFormData = (
   data: CourseFormData,
   sections: Section[]
 ): FormData => {
+  console.log('📦 createCourseFormData 시작:');
+  console.log('  - 입력 데이터:', data);
+  console.log('  - 섹션 수:', sections.length);
+  
   const formData = new FormData();
-  formData.append("title", data.courseTitle);
-  formData.append("description", data.courseDescription);
-  formData.append("category", data.courseCategory);
-  formData.append("price", data.coursePrice.toString());
-  formData.append("status", data.courseStatus ? "Published" : "Draft");
+  
+  // 기본 필드들 추가
+  formData.append("title", data.courseTitle || '');
+  formData.append("description", data.courseDescription || '');
+  formData.append("category", data.courseCategory || '');
+  
+  // 가격 필드 처리 (달러를 센트로 변환)
+  const priceInCents = dollarsToCents(data.coursePrice || '0');
+  formData.append("price", priceInCents.toString());
+  console.log('💰 가격 변환:', data.coursePrice, '->', priceInCents);
+  
+  // 상태 필드 처리
+  const status = data.courseStatus ? "Published" : "Draft";
+  formData.append("status", status);
+  console.log('📊 상태 설정:', status);
 
-  const sectionsWithVideos = sections.map((section) => ({
-    ...section,
-    chapters: section.chapters.map((chapter) => ({
-      ...chapter,
-      video: chapter.video,
-    })),
-  }));
+  // 섹션 데이터 처리
+  const sectionsWithVideos = sections.map((section) => {
+    console.log(`📂 섹션 처리: ${section.sectionTitle} (${section.chapters.length}개 챕터)`);
+    
+    return {
+      ...section,
+      chapters: section.chapters.map((chapter) => {
+        console.log(`  📄 챕터 처리: ${chapter.title} (비디오: ${chapter.video ? '있음' : '없음'})`);
+        
+        return {
+          ...chapter,
+          video: chapter.video,
+        };
+      }),
+    };
+  });
 
   formData.append("sections", JSON.stringify(sectionsWithVideos));
+  console.log('📋 섹션 데이터 JSON 추가 완료');
+  console.log('✅ FormData 생성 완료');
 
   return formData;
+};
+
+// FormData 내용을 로그로 출력하는 헬퍼 함수
+export const logFormData = (formData: FormData, title: string = 'FormData') => {
+  console.log(`📋 ${title} 내용:`);
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === 'string') {
+      console.log(`  ${key}: ${value.length > 100 ? value.substring(0, 100) + '...' : value}`);
+    } else {
+      console.log(`  ${key}: [File] ${(value as File).name}`);
+    }
+  }
 };
 
 export const uploadAllVideos = async (
@@ -351,6 +388,10 @@ export const uploadAllVideos = async (
   courseId: string,
   getUploadVideoUrl: any
 ) => {
+  console.log('📹 uploadAllVideos 시작:');
+  console.log(`  - 강의 ID: ${courseId}`);
+  console.log(`  - 섹션 수: ${localSections.length}`);
+  
   const updatedSections = localSections.map((section) => ({
     ...section,
     chapters: section.chapters.map((chapter) => ({
@@ -358,28 +399,60 @@ export const uploadAllVideos = async (
     })),
   }));
 
-  for (let i = 0; i < updatedSections.length; i++) {
-    for (let j = 0; j < updatedSections[i].chapters.length; j++) {
-      const chapter = updatedSections[i].chapters[j];
+  let totalVideos = 0;
+  let uploadedVideos = 0;
+  
+  // 전체 비디오 파일 수 계산
+  for (const section of updatedSections) {
+    for (const chapter of section.chapters) {
       if (chapter.video instanceof File && chapter.video.type === "video/mp4") {
+        totalVideos++;
+      }
+    }
+  }
+  
+  console.log(`📋 업로드할 비디오 파일: ${totalVideos}개`);
+  
+  if (totalVideos === 0) {
+    console.log('ℹ️ 업로드할 비디오 파일이 없습니다.');
+    return updatedSections;
+  }
+
+  for (let i = 0; i < updatedSections.length; i++) {
+    const section = updatedSections[i];
+    console.log(`📂 섹션 처리: ${section.sectionTitle} (${section.sectionId})`);
+    
+    for (let j = 0; j < section.chapters.length; j++) {
+      const chapter = section.chapters[j];
+      
+      if (chapter.video instanceof File && chapter.video.type === "video/mp4") {
+        console.log(`  📹 챕터 "${chapter.title}" 비디오 업로드 시작...`);
+        console.log(`    - 파일명: ${chapter.video.name}`);
+        console.log(`    - 파일 크기: ${(chapter.video.size / 1024 / 1024).toFixed(2)}MB`);
+        
         try {
           const updatedChapter = await uploadVideo(
             chapter,
             courseId,
-            updatedSections[i].sectionId,
+            section.sectionId,
             getUploadVideoUrl
           );
           updatedSections[i].chapters[j] = updatedChapter;
-        } catch (error) {
-          console.error(
-            `Failed to upload video for chapter ${chapter.chapterId}:`,
-            error
-          );
+          uploadedVideos++;
+          
+          console.log(`  ✅ 챕터 "${chapter.title}" 비디오 업로드 성공! (${uploadedVideos}/${totalVideos})`);
+        } catch (error: any) {
+          console.error(`  ❌ 챕터 "${chapter.title}" 비디오 업로드 실패:`, error);
+          console.error(`    - 에러 메시지: ${error?.message || 'Unknown error'}`);
+          // 업로드에 실패해도 계속 진행
         }
+      } else if (chapter.video) {
+        console.log(`  ℹ️ 챕터 "${chapter.title}": 비디오가 이미 URL이거나 비디오 파일이 아님`);
       }
     }
   }
-
+  
+  console.log(`✅ uploadAllVideos 완료: ${uploadedVideos}/${totalVideos}개 비디오 업로드 성공`);
   return updatedSections;
 };
 
@@ -390,8 +463,10 @@ async function uploadVideo(
   getUploadVideoUrl: any
 ) {
   const file = chapter.video as File;
+  console.log(`🚀 uploadVideo 시작: ${chapter.title}`);
 
   try {
+    console.log(`  🔗 업로드 URL 요청 중...`);
     const { uploadUrl, videoUrl } = await getUploadVideoUrl({
       courseId,
       sectionId,
@@ -399,24 +474,37 @@ async function uploadVideo(
       fileName: file.name,
       fileType: file.type,
     }).unwrap();
+    
+    console.log(`  ✅ 업로드 URL 수신 성공`);
+    console.log(`  📤 파일 업로드 시작... (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-    await fetch(uploadUrl, {
+    const uploadResponse = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
         "Content-Type": file.type,
       },
       body: file,
     });
+    
+    if (!uploadResponse.ok) {
+      throw new Error(`파일 업로드 실패: HTTP ${uploadResponse.status}`);
+    }
+    
+    console.log(`  ✅ 파일 업로드 성공!`);
+    
     toast.success(
-      `Video uploaded successfully for chapter ${chapter.chapterId}`
+      `챕터 "${chapter.title}" 비디오 업로드 성공`
     );
 
     return { ...chapter, video: videoUrl };
-  } catch (error) {
-    console.error(
-      `Failed to upload video for chapter ${chapter.chapterId}:`,
-      error
+  } catch (error: any) {
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    console.error(`❌ uploadVideo 실패 (${chapter.title}):`, errorMessage);
+    
+    toast.error(
+      `챕터 "${chapter.title}" 비디오 업로드 실패: ${errorMessage}`
     );
+    
     throw error;
   }
 }
