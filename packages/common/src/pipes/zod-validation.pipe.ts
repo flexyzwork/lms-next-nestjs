@@ -45,7 +45,7 @@ export class ZodValidationPipe implements PipeTransform {
         const errorMessages = error.errors.map((err) => {
           const field = err.path.join('.') || 'root';
           let message = err.message;
-          
+
           // 한국어 에러 메시지 개선
           if (err.code === 'invalid_type') {
             if (err.expected === 'string' && err.received === 'undefined') {
@@ -88,7 +88,7 @@ export class ZodValidationPipe implements PipeTransform {
         if (errorMessages.length === 1) {
           throw new BadRequestException(errorMessages[0].message);
         }
-        
+
         // 여러 오류인 경우 상세 정보 제공
         const errorResponse = {
           message: '입력 데이터 검증에 실패했습니다',
@@ -98,12 +98,12 @@ export class ZodValidationPipe implements PipeTransform {
 
         throw new BadRequestException(errorResponse);
       }
-      
+
       this.logger.error('Unexpected validation error:');
       this.logger.error('Error details:', {
-        name: error.constructor.name,
-        message: error.message,
-        stack: error.stack,
+        name: error?.constructor.name,
+        // message: error.message,
+        // stack: error.stack,
         metadata,
         receivedValue: value
       });

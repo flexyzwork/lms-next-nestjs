@@ -165,135 +165,64 @@ export class CoursesService {
     file?: Express.Multer.File
   ) {
     try {
+      this.logger.log(`=== Service updateCourse 시작 ===`);
+      this.logger.log(`Course ID: ${courseId}, User: ${userId}`);
+      this.logger.log(`Update Data:`, JSON.stringify(updateCourseDto, null, 2));
       this.logger.log(`강의 수정 시작 - ID: ${courseId}, 사용자: ${userId}`);
 
       // 기존 강의 조회 및 권한 확인
+      this.logger.log(`데이터베이스 조회 시작...`);
       const existingCourse = await this.prismaService.course.findUnique({
         where: { courseId },
+      });
+
+      this.logger.log(`데이터베이스 조회 결과:`, existingCourse ? '강의 발견' : '강의 없음');
+
+      if (!existingCourse) {
+        this.logger.error(`강의 없음 - ID: ${courseId}`);
+        throw new NotFoundException('강의를 찾을 수 없습니다');
+      }
+
+      this.logger.log(`강의 정보: 제목=${existingCourse.title}, 소유자=${existingCourse.teacherId}`);
+
+      if (existingCourse.teacherId !== userId) {
+        this.logger.error(`권한 오류 - 소유자: ${existingCourse.teacherId}, 요청자: ${userId}`);
+        throw new ForbiddenException('이 강의를 수정할 권한이 없습니다');
+      }
+
+      // 가격 변환 처리 삭제하고 단순 업데이트만
+      const updateData = {
+        title: updateCourseDto.title,
+        description: updateCourseDto.description,
+        category: updateCourseDto.category,
+        level: updateCourseDto.level,
+        status: updateCourseDto.status,
+      };
+      
+      // undefined 값 제거
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+      
+      this.logger.log(`실제 업데이트할 데이터:`, JSON.stringify(updateData, null, 2));
+      
+      // 단순 업데이트 (트랜잭션 없이)
+      this.logger.log(`데이터베이스 업데이트 시작...`);
+      const updatedCourse = await this.prismaService.course.update({
+        where: { courseId },
+        data: updateData,
         include: {
           sections: {
             include: {
               chapters: true
             }
-          },
-        },
-      });
-
-      if (!existingCourse) {
-        throw new NotFoundException('강의를 찾을 수 없습니다');
-      }
-
-      if (existingCourse.teacherId !== userId) {
-        this.logger.warn(`강의 수정 권한 없음 - 강의 소유자: ${existingCourse.teacherId}, 요청자: ${userId}`);
-        throw new ForbiddenException('이 강의를 수정할 권한이 없습니다');
-      }
-
-      // 가격 변환 처리 (원 단위 → 센트 단위)
-      let updateData = { ...updateCourseDto };
-      if (updateData.price !== undefined) {
-        const price = Number(updateData.price);
-        if (isNaN(price) || price < 0) {
-          throw new BadRequestException('올바른 가격을 입력해주세요');
-        }
-        updateData.price = price * 100; // 원을 센트로 변환
-      }
-
-      // sections 데이터 파싱 및 검증
-      if (typeof updateData.sections === 'string') {
-        try {
-          updateData.sections = JSON.parse(updateData.sections);
-        } catch (parseError) {
-          this.logger.error('sections JSON 파싱 오류', parseError);
-          throw new BadRequestException('sections 데이터 형식이 올바르지 않습니다');
-        }
-      }
-
-      // sections 데이터 정규화
-      const normalizedSections = Array.isArray(updateData.sections)
-        ? updateData.sections.map((section: any) => ({
-            sectionId: section.sectionId || generateId(), // 🆔 CUID2 사용
-            sectionTitle: section.sectionTitle,
-            sectionDescription: section.sectionDescription || '',
-            chapters: Array.isArray(section.chapters)
-              ? section.chapters.map((chapter: any) => ({
-                  chapterId: chapter.chapterId || generateId(), // 🆔 CUID2 사용
-                  type: chapter.type as 'Text' | 'Quiz' | 'Video',
-                  title: chapter.title,
-                  content: chapter.content || '',
-                  video: chapter.video || '',
-                }))
-              : [],
-          }))
-        : [];
-
-      // 트랜잭션으로 데이터 업데이트
-      const updatedCourse = await this.prismaService.$transaction(async (tx) => {
-        // 강의 기본 정보 업데이트
-        const courseUpdate = await tx.course.update({
-          where: { courseId },
-          data: {
-            title: updateData.title,
-            description: updateData.description,
-            category: updateData.category,
-            price: updateData.price,
-            level: updateData.level as any, // Type assertion since we know the form data is validated
-            status: updateData.status as any, // Type assertion since we know the form data is validated
-          },
-        });
-
-        // 섹션과 챕터 업데이트
-        for (const section of normalizedSections) {
-          await tx.section.upsert({
-            where: { sectionId: section.sectionId },
-            update: {
-              sectionTitle: section.sectionTitle,
-              sectionDescription: section.sectionDescription,
-            },
-            create: {
-              sectionId: section.sectionId,
-              courseId,
-              sectionTitle: section.sectionTitle,
-              sectionDescription: section.sectionDescription,
-            },
-          });
-
-          // 각 섹션의 챕터들 업데이트
-          for (const chapter of section.chapters) {
-            await tx.chapter.upsert({
-              where: { chapterId: chapter.chapterId },
-              update: {
-                type: chapter.type,
-                title: chapter.title,
-                content: chapter.content,
-                video: chapter.video,
-              },
-              create: {
-                chapterId: chapter.chapterId,
-                sectionId: section.sectionId,
-                type: chapter.type,
-                title: chapter.title,
-                content: chapter.content,
-                video: chapter.video,
-              },
-            });
           }
         }
-
-        // 최종 업데이트된 강의 반환
-        return await tx.course.findUnique({
-          where: { courseId },
-          include: {
-            sections: {
-              include: {
-                chapters: true
-              },
-              // orderBy: {
-              //   createdAt: 'asc',
-              // },
-            }
-          },
-        });
       });
+      
+      this.logger.log(`데이터베이스 업데이트 완료!`);
 
       this.logger.log(`강의 수정 완료 - ID: ${courseId}, 제목: ${updatedCourse?.title}`);
 
@@ -302,12 +231,27 @@ export class CoursesService {
         data: updatedCourse,
       };
     } catch (error) {
+      this.logger.error(`=== Service Error ===`);
+      this.logger.error(`Course ID: ${courseId}`);
+      this.logger.error(`Error Type: ${error.constructor?.name}`);
+      this.logger.error(`Error Message: ${error.message}`);
+      
       if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        this.logger.error(`Known error type, re-throwing...`);
         throw error;
       }
 
-      this.logger.error(`강의 수정 중 오류 발생 - ID: ${courseId}`, error);
-      throw new BadRequestException('강의를 수정하는 중 오류가 발생했습니다');
+      this.logger.error(`Unknown error details:`);
+      this.logger.error(`- Name: ${error.name}`);
+      this.logger.error(`- Message: ${error.message}`);
+      if (error.stack) {
+        this.logger.error(`- Stack trace:`);
+        error.stack.split('\n').slice(0, 10).forEach((line: string, i: number) => {
+          this.logger.error(`  ${i + 1}. ${line.trim()}`);
+        });
+      }
+      
+      throw new BadRequestException('강의를 수정하는 중 예상치 못한 오류가 발생했습니다');
     }
   }
 

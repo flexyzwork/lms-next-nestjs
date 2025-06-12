@@ -188,30 +188,74 @@ export class CoursesController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: User
   ) {
-    this.logger.log(`강의 수정 요청 - ID: ${courseId}, 사용자: ${user.id}, 역할: ${user.role}`);
-    
-    // 수동으로 데이터 처리 및 검증
-    const processedData = {
-      title: updateCourseDto?.title || undefined,
-      description: updateCourseDto?.description || undefined,
-      category: updateCourseDto?.category || undefined,
-      price: updateCourseDto?.price ? parseFloat(updateCourseDto.price) : undefined,
-      level: updateCourseDto?.level || undefined,
-      status: updateCourseDto?.status || undefined,
-      sections: updateCourseDto?.sections || undefined
-    };
-    
-    this.logger.debug(`수정 데이터:`, processedData);
+    try {
+      this.logger.log(`=== 강의 수정 요청 시작 ===`);
+      this.logger.log(`Course ID: ${courseId}`);
+      this.logger.log(`User: ${user.id} (${user.role})`);
+      this.logger.log(`Raw Body Type: ${typeof updateCourseDto}`);
+      this.logger.log(`Raw Body Content:`, JSON.stringify(updateCourseDto, null, 2));
+      this.logger.log(`File Info:`, file ? {
+        name: file.originalname,
+        type: file.mimetype,
+        size: file.size
+      } : 'No file');
+      
+      // 데이터 안전 처리
+      const safeData: any = {};
+      
+      if (updateCourseDto?.title && updateCourseDto.title.trim()) {
+        safeData.title = String(updateCourseDto.title).trim();
+      }
+      
+      if (updateCourseDto?.description !== undefined) {
+        safeData.description = String(updateCourseDto.description || '').trim();
+      }
+      
+      if (updateCourseDto?.category && updateCourseDto.category.trim()) {
+        safeData.category = String(updateCourseDto.category).trim();
+      }
+      
+      if (updateCourseDto?.price !== undefined && updateCourseDto.price !== '') {
+        const price = parseFloat(String(updateCourseDto.price));
+        if (!isNaN(price) && price >= 0) {
+          safeData.price = price;
+        }
+      }
+      
+      if (updateCourseDto?.level) {
+        safeData.level = String(updateCourseDto.level);
+      }
+      
+      if (updateCourseDto?.status) {
+        safeData.status = String(updateCourseDto.status);
+      }
+      
+      this.logger.log(`Processed Data:`, JSON.stringify(safeData, null, 2));
+      this.logger.log(`=== Service 호출 시작 ===`);
 
-    const result = await this.coursesService.updateCourse(
-      courseId,
-      processedData,
-      user.id,
-      file
-    );
+      const result = await this.coursesService.updateCourse(
+        courseId,
+        safeData,
+        user.id,
+        file
+      );
 
-    this.logger.log(`강의 수정 완료 - ID: ${courseId}`);
-    return result;
+      this.logger.log(`=== 강의 수정 완료 ===`);
+      return result;
+      
+    } catch (error) {
+      this.logger.error(`=== Controller Error ===`);
+      this.logger.error(`Course ID: ${courseId}`);
+      this.logger.error(`Error Type: ${error.constructor?.name}`);
+      this.logger.error(`Error Message: ${error.message}`);
+      if (error.stack) {
+        this.logger.error(`Stack Trace:`);
+        error.stack.split('\n').slice(0, 8).forEach((line: string, i: number) => {
+          this.logger.error(`  ${i + 1}. ${line.trim()}`);
+        });
+      }
+      throw error;
+    }
   }
 
   /**
