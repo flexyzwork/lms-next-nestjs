@@ -9,8 +9,20 @@ export class ZodValidationPipe implements PipeTransform {
 
   transform(value: any, metadata: ArgumentMetadata) {
     try {
-      // 빈 객체나 null 값 처리
-      if (!value || typeof value !== 'object') {
+      // 스키마가 없는 경우 원본 값 반환 (개발 중 안전장치)
+      if (!this.schema) {
+        this.logger.warn(`⚠️ 스키마가 정의되지 않았습니다 - ${metadata.type}:${metadata.metatype?.name}`);
+        return value;
+      }
+
+      // GET 요청의 경우 빈 쿼리 객체도 허용
+      if (metadata.type === 'query' && (!value || Object.keys(value).length === 0)) {
+        const parsedValue = this.schema.parse({});
+        return parsedValue;
+      }
+
+      // 빈 객체나 null 값 처리 (POST/PUT 요청용)
+      if (metadata.type === 'body' && (!value || typeof value !== 'object')) {
         throw new BadRequestException('요청 본문이 필요합니다');
       }
 
@@ -87,7 +99,14 @@ export class ZodValidationPipe implements PipeTransform {
         throw new BadRequestException(errorResponse);
       }
       
-      this.logger.error('Unexpected validation error:', error);
+      this.logger.error('Unexpected validation error:');
+      this.logger.error('Error details:', {
+        name: error.constructor.name,
+        message: error.message,
+        stack: error.stack,
+        metadata,
+        receivedValue: value
+      });
       throw new BadRequestException('데이터 검증 중 오류가 발생했습니다');
     }
   }

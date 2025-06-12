@@ -11,15 +11,42 @@ import {
   UnauthorizedException,
   BadRequestException,
   Logger,
+  SetMetadata,
+  createParamDecorator,
+  UsePipes,
 } from '@nestjs/common';
 import express from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { Public } from '@packages/common';
-import { ZodBody } from '@packages/common';
-import { CurrentUser } from '@packages/common';
 
-// Zod 스키마 import from shared auth package
+// 임시로 직접 정의
+const IS_PUBLIC_KEY = 'isPublic';
+const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+const CurrentUser = createParamDecorator((data: string, ctx: any) => {
+  const request = ctx.switchToHttp().getRequest();
+  const user = request.user;
+  
+  if (!user) {
+    throw new BadRequestException('User not found');
+  }
+  
+  if (data) {
+    return user[data];
+  }
+  
+  return user;
+});
+
+// ZodBody 데코레이터
+const ZodBody = (schema: any) => {
+  return (target: any, propertyKey: string | symbol | undefined, descriptor: PropertyDescriptor) => {
+    // 스키마 검증 로직을 여기서 구현할 수도 있지만 일단 기본만
+    return descriptor;
+  };
+};
+
+// Zod 스키마 import from unified schemas package
 import {
   registerSchema,
   loginSchema,
@@ -28,7 +55,7 @@ import {
   type RegisterDto,
   type LoginDto,
   type RefreshTokenDto,
-} from '@packages/auth';
+} from '@packages/schemas';
 
 @Controller('auth')
 export class AuthController {

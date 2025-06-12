@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { AuthTokens } from '@packages/schemas';
 
 function AuthCallbackHandler() {
   const { login } = useAuthStore();
@@ -16,7 +17,7 @@ function AuthCallbackHandler() {
     if (token && userParam) {
       try {
         const user = JSON.parse(decodeURIComponent(userParam)); // ✅ JSON 복원
-        login(user, token); // ✅ Zustand에 저장
+        login(user, token as unknown as AuthTokens); // ✅ Zustand에 저장
 
         const { accessToken, user: savedUser } = useAuthStore.getState();
         console.log('✅ accessToken:', accessToken);

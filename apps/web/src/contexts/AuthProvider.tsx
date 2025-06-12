@@ -4,9 +4,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { fetchProfile } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
+import type { AuthUser } from '@packages/schemas';
 
 interface AuthContextType {
-  user: any;
+  user: AuthUser | null;
   loading: boolean;
 }
 
@@ -20,7 +21,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function checkUser() {
       const profile = await fetchProfile();
       if (profile?.user && profile?.token) {
-        login(profile.user, profile.token);
+        // 이미 새로운 타입을 사용하므로 그대로 전달
+        login(profile.user, { accessToken: profile.token, refreshToken: '', tokenType: 'Bearer', expiresIn: 3600 });
       }
       setLoading(false);
     }

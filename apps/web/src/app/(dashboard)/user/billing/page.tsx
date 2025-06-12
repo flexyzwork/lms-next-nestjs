@@ -19,19 +19,19 @@ const UserBilling = () => {
   useEffect(() => {
     console.log('🔍 UserBilling 페이지 - 현재 사용자 정보:', {
       user,
-      userId: user?.userId,
+      userId: user?.id,
       id: user?.id,
       email: user?.email
     });
   }, [user]);
 
-  const { 
-    data: transactions, 
-    isLoading: isLoadingTransactions, 
+  const {
+    data: transactions,
+    isLoading: isLoadingTransactions,
     isError,
-    error 
-  } = useGetTransactionsQuery(user?.userId || '', {
-    skip: !user?.userId, // userId가 없으면 쿼리 건너뛰기
+    error
+  } = useGetTransactionsQuery(user?.id || '', {
+    skip: !user?.id, // userId가 없으면 쿼리 건너뛰기
   });
 
   // 오류 상세 로깅
@@ -53,7 +53,7 @@ const UserBilling = () => {
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <h2 className="text-xl font-semibold">로그인이 필요합니다</h2>
         <p className="text-muted-foreground">결제 내역을 보려면 로그인해주세요.</p>
-        <button 
+        <button
           onClick={() => router.push('/signin')}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
         >
@@ -63,13 +63,13 @@ const UserBilling = () => {
     );
   }
 
-  if (!user.userId) {
+  if (!user.id) {
     console.log('⚠️ userId가 없음:', user);
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <h2 className="text-xl font-semibold">사용자 정보 오류</h2>
         <p className="text-muted-foreground">사용자 정보에 문제가 있습니다. 다시 로그인해주세요.</p>
-        <button 
+        <button
           onClick={() => router.push('/signin')}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
         >
@@ -85,7 +85,7 @@ const UserBilling = () => {
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <h2 className="text-xl font-semibold">결제 내역을 불러올 수 없습니다</h2>
         <p className="text-muted-foreground">네트워크 오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
         >

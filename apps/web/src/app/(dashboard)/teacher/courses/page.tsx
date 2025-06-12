@@ -58,8 +58,8 @@ const Courses = () => {
     if (!user) return;
 
     const result = await createCourse({
-      teacherId: user.userId,
-      teacherName: user.name || "Unknown Teacher",
+      teacherId: user.id,
+      teacherName: user.username || "Unknown Teacher",
       title: "새 강의",
       category: "기타",
       level: "Beginner",
@@ -99,7 +99,7 @@ const Courses = () => {
             course={course}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            isOwner={course.teacherId === user?.userId}
+            isOwner={course.teacherId === user?.id}
           />
         ))}
       </div>

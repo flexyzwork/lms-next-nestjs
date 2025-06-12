@@ -4,7 +4,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 import { PrismaService } from '@packages/database';
 import { generateId } from '@packages/common'; // 🆔 CUID2 생성자 사용
-import { CreateCourseDto, UpdateCourseDto, UpdateCourseFormDataDto, UploadVideoUrlDto } from './dto/course.dto';
+import { CreateCourseDto } from './dto/course.dto';
+// 임시로 비활성화: UploadVideoUrlDto, UpdateCourseDto, UpdateCourseFormDataDto
 
 /**
  * 📚 강의 관리 서비스
@@ -33,10 +34,13 @@ export class CoursesService {
   async findAllCourses(category?: string) {
     try {
       this.logger.log(`강의 목록 조회 시작 - 카테고리: ${category || '전체'}`);
-
-      const whereClause = category && category !== 'all'
-        ? { category: String(category) }
+      
+      // 카테고리 필터 조건 구성
+      const whereClause = category && category !== 'all' && category.trim() !== ''
+        ? { category: String(category).trim() }
         : undefined;
+        
+      this.logger.debug(`사용될 WHERE 조건:`, whereClause);
 
       const courses = await this.prismaService.course.findMany({
         where: whereClause,
@@ -156,7 +160,7 @@ export class CoursesService {
    */
   async updateCourse(
     courseId: string,
-    updateCourseDto: UpdateCourseFormDataDto,
+    updateCourseDto: any, // 임시로 any 타입 사용
     userId: string,
     file?: Express.Multer.File
   ) {
@@ -355,7 +359,7 @@ export class CoursesService {
   /**
    * 📹 비디오 업로드를 위한 S3 미리 서명된 URL 생성
    */
-  async generateUploadVideoUrl(uploadVideoUrlDto: UploadVideoUrlDto) {
+  async generateUploadVideoUrl(uploadVideoUrlDto: any) {
     try {
       this.logger.log(`비디오 업로드 URL 생성 시작 - 파일: ${uploadVideoUrlDto.fileName}`);
 

@@ -16,7 +16,7 @@ export const useCourseProgressData = () => {
 
   const { data: userProgress, isLoading: progressLoading } = useGetUserCourseProgressQuery(
     {
-      userId: user?.userId ?? '',
+      userId: user?.id ?? '',
       courseId: (courseId as string) ?? '',
     },
     {
@@ -45,7 +45,7 @@ export const useCourseProgressData = () => {
     const updatedSections = Array.isArray(userProgress?.sections) ? userProgress.sections : [];
 
     updateProgress({
-      userId: user.userId,
+      userId: user.id,
       courseId: (courseId as string) ?? '',
       progressData: {
         sections: [

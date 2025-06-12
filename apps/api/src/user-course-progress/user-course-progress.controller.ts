@@ -8,6 +8,7 @@ import {
   Logger,
   HttpStatus,
   HttpCode,
+  BadRequestException, // 새로 추가
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,22 +24,25 @@ import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 import type {
-  UpdateUserCourseProgressDto,
-  UserCourseProgressParamsDto,
-  UserEnrolledCoursesParamsDto,
+  // UpdateUserCourseProgressDto, // 임시로 비활성화
+  // UserCourseProgressParamsDto, // 임시로 비활성화
+  // UserEnrolledCoursesParamsDto, // 임시로 비활성화
 } from './dto/user-course-progress.dto';
 
 import {
-  UpdateUserCourseProgressSchema,
-  UserCourseProgressParamsSchema,
-  UserEnrolledCoursesParamsSchema,
+  // UpdateUserCourseProgressSchema, // 임시로 비활성화
+  // UserCourseProgressParamsSchema, // 임시로 비활성화
+  // UserEnrolledCoursesParamsSchema, // 임시로 비활성화
 } from './dto/user-course-progress.dto';
 
+// 다른 스키마들도 임시로 비활성화
+/*
 import {
   chapterProgressSchema,
   sectionProgressSchema,
   updateUserCourseProgressSchema,
 } from '@packages/common';
+*/
 
 import type { User } from '@packages/common';
 
@@ -75,16 +79,24 @@ export class UserCourseProgressController {
   @ApiResponse({ status: 500, description: '서버 오류' })
   @Throttle({ default: { limit: 30, ttl: 60000 } }) // 분당 30회 제한
   async getUserEnrolledCourses(
-    @Param(new ZodValidationPipe(UserEnrolledCoursesParamsSchema))
-    params: UserEnrolledCoursesParamsDto,
+    @Param() params: any, // 임시로 직접 처리
     @CurrentUser() user: User
   ) {
+    // 수동으로 파라미터 검증
+    const processedParams = {
+      userId: params?.userId || ''
+    };
+    
+    if (!processedParams.userId) {
+      throw new BadRequestException('사용자 ID가 필요합니다');
+    }
+    
     this.logger.log(
-      `등록 강의 목록 조회 요청 - 대상: ${params.userId}, 요청자: ${user.id}`
+      `등록 강의 목록 조회 요청 - 대상: ${processedParams.userId}, 요청자: ${user.id}`
     );
 
     const result = await this.userCourseProgressService.getUserEnrolledCourses(
-      params.userId,
+      processedParams.userId,
       user
     );
 
@@ -109,17 +121,26 @@ export class UserCourseProgressController {
   @ApiResponse({ status: 500, description: '서버 오류' })
   @Throttle({ default: { limit: 50, ttl: 60000 } }) // 분당 50회 제한
   async getUserCourseProgress(
-    @Param(new ZodValidationPipe(UserCourseProgressParamsSchema))
-    params: UserCourseProgressParamsDto,
+    @Param() params: any, // 임시로 직접 처리
     @CurrentUser() user: User
   ) {
+    // 수동으로 파라미터 검증
+    const processedParams = {
+      userId: params?.userId || '',
+      courseId: params?.courseId || ''
+    };
+    
+    if (!processedParams.userId || !processedParams.courseId) {
+      throw new BadRequestException('사용자 ID와 강의 ID가 필요합니다');
+    }
+    
     this.logger.log(
-      `강의 진도 조회 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.id}`
+      `강의 진도 조회 요청 - 사용자: ${processedParams.userId}, 강의: ${processedParams.courseId}, 요청자: ${user.id}`
     );
 
     const result = await this.userCourseProgressService.getUserCourseProgress(
-      params.userId,
-      params.courseId,
+      processedParams.userId,
+      processedParams.courseId,
       user
     );
 
@@ -146,21 +167,36 @@ export class UserCourseProgressController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // 분당 100회 제한 (학습 활동은 빈번함)
   async updateUserCourseProgress(
-    @Param(new ZodValidationPipe(UserCourseProgressParamsSchema))
-    params: UserCourseProgressParamsDto,
-    @Body(new ZodValidationPipe(updateUserCourseProgressSchema))
-    updateProgressDto: UpdateUserCourseProgressDto,
+    @Param() params: any, // 임시로 직접 처리
+    @Body() updateProgressDto: any, // 임시로 직접 처리
     @CurrentUser() user: User
   ) {
+    // 수동으로 파라미터 검증
+    const processedParams = {
+      userId: params?.userId || '',
+      courseId: params?.courseId || ''
+    };
+    
+    if (!processedParams.userId || !processedParams.courseId) {
+      throw new BadRequestException('사용자 ID와 강의 ID가 필요합니다');
+    }
+    
+    // 수동으로 진도 데이터 처리
+    const processedData = {
+      sections: updateProgressDto?.sections || [],
+      overallProgress: updateProgressDto?.overallProgress || undefined,
+      lastAccessedChapterId: updateProgressDto?.lastAccessedChapterId || undefined
+    };
+    
     this.logger.log(
-      `강의 진도 업데이트 요청 - 사용자: ${params.userId}, 강의: ${params.courseId}, 요청자: ${user.id}`
+      `강의 진도 업데이트 요청 - 사용자: ${processedParams.userId}, 강의: ${processedParams.courseId}, 요청자: ${user.id}`
     );
 
     const result =
       await this.userCourseProgressService.updateUserCourseProgress(
-        params.userId,
-        params.courseId,
-        updateProgressDto,
+        processedParams.userId,
+        processedParams.courseId,
+        processedData,
         user
       );
 

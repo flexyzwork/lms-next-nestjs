@@ -15,10 +15,10 @@ const UserProfilePage = () => {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    if (user?.name) {
-      setName(user.name);
+    if (user?.username) {
+      setName(user.username);
     }
-  }, [user?.name]);
+  }, [user?.username]);
 
   // ✅ 이름 입력값 업데이트
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,10 +28,10 @@ const UserProfilePage = () => {
   // ✅ 프로필 업데이트 API 호출
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.userId) return;
+    if (!user?.id) return;
 
     try {
-      const updatedUser = await updateProfile({ name });
+      const updatedUser = await updateProfile({ username: name });
       setUser(updatedUser);
       alert('프로필이 성공적으로 업데이트되었습니다!');
     } catch (error) {
@@ -53,13 +53,13 @@ const UserProfilePage = () => {
               {/* 프로필 이미지 및 정보 */}
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24 border-2 border-border">
-                  <AvatarImage src={user?.picture ?? ''} alt="Profile" />
+                  <AvatarImage src={user?.avatar ?? ''} alt="Profile" />
                   <AvatarFallback className="text-lg font-bold bg-muted text-muted-foreground">
-                    {user?.name?.charAt(0) ?? 'U'}
+                    {user?.username?.charAt(0) ?? 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-1">
-                  <h2 className="text-xl font-semibold text-foreground">{user?.name || 'No Name'}</h2>
+                  <h2 className="text-xl font-semibold text-foreground">{user?.username || 'No Name'}</h2>
                   <p className="text-muted-foreground">{user?.email || 'No Email'}</p>
                   <span className="text-muted-foreground bg-muted px-3 py-1 rounded-md text-sm inline-block">
                     {user?.role || 'USER'}
@@ -87,9 +87,9 @@ const UserProfilePage = () => {
 
               {/* 저장 버튼 */}
               <div className="flex justify-end">
-                <Button 
-                  type="submit" 
-                  variant="default" 
+                <Button
+                  type="submit"
+                  variant="default"
                   className="px-4 py-2 shadow-md w-36 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Save Changes

@@ -3,12 +3,81 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from '@packages/common';
+// import { AllExceptionsFilter } from '@packages/common'; // 임시로 주석 처리
 import compression from 'compression';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { join } from 'path';
 import { setupAuthSwagger } from '@packages/config';
+
+// 임시로 직접 import
+import { Catch, HttpException, HttpStatus, Logger as NestLogger } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/binary';
+import { ZodError } from 'zod';
+
+@Catch()
+class AllExceptionsFilter {
+  private readonly logger = new NestLogger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: any) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+
+    let status: number;
+    let message: any;
+    let error: string;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      if (typeof exceptionResponse === 'object') {
+        message = (exceptionResponse as any).message || exception.message;
+        error = (exceptionResponse as any).error || exception.name;
+      } else {
+        message = exceptionResponse;
+        error = exception.name;
+      }
+    } else if (exception instanceof ZodError) {
+      status = HttpStatus.BAD_REQUEST;
+      error = 'Validation Error';
+      const zodErrors = exception.errors.map((err) => {
+        const path = err.path.length > 0 ? err.path.join('.') : 'root';
+        return `${path}: ${err.message}`;
+      });
+      message = {
+        message: '입력 데이터 검증에 실패했습니다',
+        errors: zodErrors,
+        details: exception.errors,
+      };
+    } else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = '서버 내부 오류가 발생했습니다';
+      error = 'Internal Server Error';
+    }
+
+    this.logger.error(
+      `${request.method} ${request.url}`,
+      exception instanceof Error ? exception.stack : exception
+    );
+
+    const errorResponse = {
+      success: false,
+      statusCode: status,
+      error,
+      message,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+    };
+
+    if (process.env.NODE_ENV === 'development' && exception instanceof Error) {
+      (errorResponse as any).stack = exception.stack;
+    }
+
+    response.status(status).json(errorResponse);
+  }
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');

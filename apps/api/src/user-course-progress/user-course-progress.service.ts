@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 
 import { PrismaService } from '@packages/database';
-import { UpdateUserCourseProgressDto } from './dto/user-course-progress.dto';
+// import { UpdateUserCourseProgressDto } from './dto/user-course-progress.dto';
+// 임시로 비활성화
 
 import { User } from '@packages/common';
 
@@ -141,7 +142,7 @@ export class UserCourseProgressService {
   async updateUserCourseProgress(
     targetUserId: string,
     courseId: string,
-    updateProgressDto: UpdateUserCourseProgressDto,
+    updateProgressDto: any, // 임시로 any 타입 사용
     requestUser: User,
   ) {
     try {

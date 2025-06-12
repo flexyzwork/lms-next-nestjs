@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 const TeacherBilling = () => {
   const [paymentType, setPaymentType] = useState('all');
   const { user } = useAuthStore();
-  const { data: transactions, isLoading: isLoadingTransactions } = useGetTransactionsQuery(user?.userId || '', {
+  const { data: transactions, isLoading: isLoadingTransactions } = useGetTransactionsQuery(user?.id || '', {
     skip: !user,
   });
 

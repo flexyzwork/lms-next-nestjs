@@ -44,16 +44,16 @@ export default function DebugAuthPage() {
   }
 
   const isTokenExpired = decodedToken && decodedToken.exp && Date.now() >= decodedToken.exp * 1000;
-  
+
   // userId 불일치 검사 (토큰의 userId와 저장된 userId 비교)
   const tokenUserId = decodedToken?.userId || decodedToken?.sub;
-  const storedUserId = user?.userId;
+  const storedUserId = user?.id;
   const userIdMismatch = tokenUserId && storedUserId && tokenUserId !== storedUserId;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">🔍 인증 상태 디버깅</h1>
-      
+
       <div className="space-y-6">
         {/* 현재 인증 상태 */}
         <div className="bg-card p-4 rounded-lg border">
@@ -62,13 +62,13 @@ export default function DebugAuthPage() {
             <p><strong>로그인 여부:</strong> {user ? '✅ 로그인됨' : '❌ 로그인되지 않음'}</p>
             <p><strong>토큰 여부:</strong> {accessToken ? '✅ 토큰 있음' : '❌ 토큰 없음'}</p>
             <p><strong>토큰 만료:</strong> {
-              decodedToken 
+              decodedToken
                 ? (isTokenExpired ? '❌ 만료됨' : '✅ 유효함')
                 : '❓ 확인 불가'
             }</p>
             <p><strong>userId 일치:</strong> {
-              userIdMismatch 
-                ? '❌ 불일치' 
+              userIdMismatch
+                ? '❌ 불일치'
                 : (tokenUserId && storedUserId ? '✅ 일치' : '❓ 확인 불가')
             }</p>
           </div>
@@ -82,7 +82,7 @@ export default function DebugAuthPage() {
               <p><strong>저장된 userId:</strong> {storedUserId}</p>
               <p><strong>토큰의 userId:</strong> {tokenUserId}</p>
               <p className="font-bold">두 값이 다릅니다! 이것이 403 에러의 원인입니다.</p>
-              <button 
+              <button
                 onClick={() => {
                   localStorage.clear();
                   window.location.href = '/signin';
@@ -107,12 +107,12 @@ export default function DebugAuthPage() {
                   <p><strong>이메일:</strong> {decodedToken.email || '없음'}</p>
                   <p><strong>역할:</strong> {decodedToken.role || '없음'}</p>
                   <p><strong>발행 시간:</strong> {
-                    decodedToken.iat 
+                    decodedToken.iat
                       ? new Date(decodedToken.iat * 1000).toLocaleString('ko-KR')
                       : '없음'
                   }</p>
                   <p><strong>만료 시간:</strong> {
-                    decodedToken.exp 
+                    decodedToken.exp
                       ? new Date(decodedToken.exp * 1000).toLocaleString('ko-KR')
                       : '없음'
                   }</p>
@@ -139,14 +139,14 @@ export default function DebugAuthPage() {
           <h2 className="text-lg font-semibold mb-3">👤 저장된 사용자 정보</h2>
           {user ? (
             <div className="space-y-2">
-              <p><strong>userId:</strong> {user.userId || '❌ 없음'}</p>
+              <p><strong>userId:</strong> {user.id || '❌ 없음'}</p>
               <p><strong>id:</strong> {user.id || '❌ 없음'}</p>
               <p><strong>email:</strong> {user.email || '❌ 없음'}</p>
-              <p><strong>name:</strong> {user.name || '❌ 없음'}</p>
+              <p><strong>name:</strong> {user.username || '❌ 없음'}</p>
               <p><strong>role:</strong> {user.role || '❌ 없음'}</p>
-              <p><strong>provider:</strong> {user.provider || '❌ 없음'}</p>
-              <p><strong>picture:</strong> {user.picture || '❌ 없음'}</p>
-              <p><strong>created_at:</strong> {user.created_at || '❌ 없음'}</p>
+              {/* <p><strong>provider:</strong> {user.provider || '❌ 없음'}</p> */}
+              <p><strong>picture:</strong> {user.avatar || '❌ 없음'}</p>
+              <p><strong>created_at:</strong> {user.createdAt || '❌ 없음'}</p>
             </div>
           ) : (
             <p className="text-muted-foreground">사용자 정보가 없습니다.</p>
@@ -166,7 +166,7 @@ export default function DebugAuthPage() {
                       'Content-Type': 'application/json',
                     },
                   });
-                  
+
                   const responseText = await response.text();
                   console.log('JWT Verify 응답:', response.status, responseText);
                   alert(`JWT Verify 응답: ${response.status}\n${responseText}`);
@@ -187,17 +187,17 @@ export default function DebugAuthPage() {
                   // Auth 서비스 JWT 설정 확인
                   const authResponse = await fetch('/api/auth/debug/jwt-config');
                   const authData = await authResponse.json();
-                  
+
                   // API 게이트웨이 JWT 설정 확인
                   const apiResponse = await fetch('/api/debug/jwt-verify', {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
                   });
                   const apiData = await apiResponse.json();
-                  
+
                   const authSecret = authData.data?.accessSecret_preview || 'ERROR';
                   const apiSecret = apiData.secret_preview || 'ERROR';
                   const isMatch = authSecret === apiSecret;
-                  
+
                   console.log('JWT 설정 비교:', { authSecret, apiSecret, isMatch });
                   alert(`JWT 시크릿 비교:\n\nAuth 서비스: ${authSecret}\nAPI 게이트웨이: ${apiSecret}\n\n결과: ${isMatch ? '✅ 일치' : '❌ 불일치'}`);
                 } catch (error) {
@@ -212,19 +212,19 @@ export default function DebugAuthPage() {
 
             <button
               onClick={async () => {
-                if (!user?.userId) {
+                if (!user?.id) {
                   alert('userId가 없습니다!');
                   return;
                 }
-                
+
                 try {
-                  const response = await fetch(`/api/transactions?userId=${user.userId}`, {
+                  const response = await fetch(`/api/transactions?userId=${user.id}`, {
                     headers: {
                       'Authorization': `Bearer ${accessToken}`,
                       'Content-Type': 'application/json',
                     },
                   });
-                  
+
                   const responseText = await response.text();
                   console.log('Transactions API 응답:', response.status, responseText);
                   alert(`Transactions API 응답: ${response.status}\n${responseText}`);
@@ -234,26 +234,26 @@ export default function DebugAuthPage() {
                 }
               }}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              disabled={!user?.userId || !accessToken}
+              disabled={!user?.id || !accessToken}
             >
               💳 Transactions API
             </button>
 
             <button
               onClick={async () => {
-                if (!user?.userId) {
+                if (!user?.id) {
                   alert('userId가 없습니다!');
                   return;
                 }
-                
+
                 try {
-                  const response = await fetch(`/api/users/course-progress/${user.userId}/enrolled-courses`, {
+                  const response = await fetch(`/api/users/course-progress/${user.id}/enrolled-courses`, {
                     headers: {
                       'Authorization': `Bearer ${accessToken}`,
                       'Content-Type': 'application/json',
                     },
                   });
-                  
+
                   const responseText = await response.text();
                   console.log('Enrolled Courses API 응답:', response.status, responseText);
                   alert(`Enrolled Courses API 응답: ${response.status}\n${responseText}`);
@@ -263,7 +263,7 @@ export default function DebugAuthPage() {
                 }
               }}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-              disabled={!user?.userId || !accessToken}
+              disabled={!user?.id || !accessToken}
             >
               📚 Enrolled Courses API
             </button>
@@ -275,11 +275,11 @@ export default function DebugAuthPage() {
                     method: 'POST',
                     credentials: 'include',
                   });
-                  
+
                   const responseText = await response.text();
                   console.log('Token Refresh 응답:', response.status, responseText);
                   alert(`Token Refresh 응답: ${response.status}\n${responseText}`);
-                  
+
                   if (response.ok) {
                     window.location.reload();
                   }
@@ -312,7 +312,7 @@ export default function DebugAuthPage() {
             {!user && (
               <p className="text-red-600">❌ 사용자 정보가 없습니다. 로그인이 필요합니다.</p>
             )}
-            {user && !user.userId && (
+            {user && !user.id && (
               <p className="text-red-600">❌ userId 필드가 없습니다. 인증 응답 구조를 확인하세요.</p>
             )}
             {!accessToken && (
@@ -324,7 +324,7 @@ export default function DebugAuthPage() {
             {userIdMismatch && (
               <p className="text-red-600">❌ 저장된 userId와 토큰의 userId가 다릅니다. (403 에러의 주요 원인)</p>
             )}
-            {user && user.userId && accessToken && !isTokenExpired && !userIdMismatch && (
+            {user && user.id && accessToken && !isTokenExpired && !userIdMismatch && (
               <p className="text-green-600">✅ 모든 필수 정보가 올바릅니다. API 호출이 정상 작동해야 합니다.</p>
             )}
           </div>

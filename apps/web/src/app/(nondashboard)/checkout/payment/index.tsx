@@ -41,7 +41,7 @@ const PaymentPageContent = () => {
     if (result.paymentIntent?.status === 'succeeded') {
       const transactionData: Partial<Transaction> = {
         transactionId: result.paymentIntent.id,
-        userId: user?.userId,
+        userId: user?.id,
         courseId: courseId,
         paymentProvider: 'stripe',
         amount: course?.price || 0,

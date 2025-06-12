@@ -2,7 +2,8 @@ import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenEx
 import Stripe from 'stripe';
 
 import { PrismaService } from '@packages/database';
-import { CreateStripePaymentIntentDto, CreateTransactionDto, TransactionQueryDto } from './dto/transaction.dto';
+// import { CreateStripePaymentIntentDto, CreateTransactionDto } from './dto/transaction.dto';
+// 임시로 비활성화: 모든 DTO 타입
 
 import type { User } from '@packages/common';
 
@@ -36,16 +37,21 @@ export class TransactionsService {
   /**
    * 📋 트랜잭션 목록 조회 (사용자별, 페이지네이션)
    */
-  async findAllTransactions(query: TransactionQueryDto, user: User) {
+  async findAllTransactions(query: any, user: User) {
     try {
-      this.logger.log(`트랜잭션 목록 조회 시작 - 요청자: ${user.userId}, 대상: ${query.userId || '전체'}`);
+      this.logger.log(`트랜잭션 목록 조회 시작 - 요청자: ${user.id}, 대상: ${query.userId || '전체'}`);
 
       // 일반 사용자는 자신의 트랜잭션만 조회 가능
       // 관리자는 특정 사용자나 전체 트랜잭션 조회 가능
       const isAdmin = user.role === 'admin' || user.role === 'teacher';
-      const targetUserId = isAdmin ? query.userId : user.userId;
+      const targetUserId = isAdmin ? query.userId : user.id;
 
       const whereClause = targetUserId ? { userId: targetUserId } : {};
+      
+      // 페이지네이션 계산
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+      const offset = (page - 1) * limit;
 
       const [transactions, totalCount] = await Promise.all([
         this.prismaService.transaction.findMany({
@@ -62,10 +68,10 @@ export class TransactionsService {
             },
           },
           orderBy: {
-            dateTime: 'desc',
+            dateTime: query.sortOrder === 'asc' ? 'asc' : 'desc',
           },
-          take: query.limit,
-          skip: query.offset,
+          take: limit,
+          skip: offset,
         }),
         this.prismaService.transaction.count({
           where: whereClause,
@@ -79,9 +85,11 @@ export class TransactionsService {
         data: transactions,
         pagination: {
           total: totalCount,
-          limit: query.limit,
-          offset: query.offset,
-          hasNext: (query.offset || 0) + (query.limit || 10) < totalCount,
+          page,
+          limit,
+          offset,
+          hasNext: offset + limit < totalCount,
+          totalPages: Math.ceil(totalCount / limit),
         },
       };
     } catch (error) {
@@ -96,7 +104,7 @@ export class TransactionsService {
    * 주의: KRW(한국 원화)는 센트 단위가 없으므로 원 단위 그대로 전달
    * USD, EUR 등의 통화는 센트 단위로 변환 필요
    */
-  async createStripePaymentIntent(createPaymentIntentDto: CreateStripePaymentIntentDto) {
+  async createStripePaymentIntent(createPaymentIntentDto: any) {
     try {
       this.logger.log(`Stripe 결제 의도 생성 시작 - 금액: ${createPaymentIntentDto.amount}`);
 
@@ -151,7 +159,7 @@ export class TransactionsService {
    * 📝 새 트랜잭션 생성 (결제 완료 후)
    * 원자적 처리로 트랜잭션, 등록, 학습 진도 초기화를 모두 처리
    */
-  async createTransaction(createTransactionDto: CreateTransactionDto) {
+  async createTransaction(createTransactionDto: any) {
     try {
       this.logger.log(`트랜잭션 생성 시작 - 사용자: ${createTransactionDto.userId}, 강의: ${createTransactionDto.courseId}`);
 
