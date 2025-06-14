@@ -15,12 +15,8 @@
     "check-types": "turbo run check-types",
     "db": "pnpm --filter @packages/database",
     "db:init": "pnpm db migrate dev --name init",
-    "db:seed": "pnpm db seed",
     "db:reset": "pnpm docker db:reset && pnpm db migrate dev",
-    "seed": "./scripts/seed-database.sh",
-    "seed:quick": "pnpm db seed:dev",
-    "reset-db": "./scripts/reset-db-cuid2.sh",
-    "test-cuid2": "./scripts/test-cuid2.sh",
+    "db:seed": "./scripts/seed-database.sh",
     "dev": "turbo run dev",
     "dev:auth": "pnpm --filter @apps/auth dev",
     "dev:api": "pnpm --filter @apps/api dev",
@@ -28,7 +24,6 @@
     "docker": "pnpm --filter @packages/docker",
     "format": "prettier --write .",
     "lint": "turbo run lint",
-    "setup": "chmod +x setup.sh && ./setup.sh",
     "test": "turbo run test"
   },
   "engines": {
