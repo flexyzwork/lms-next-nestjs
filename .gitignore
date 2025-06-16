@@ -25,3 +25,4 @@ yarn-error.log*
 .git_backup
 debug-generated-token.json
 README-dev.md
+docs/programming-skills-validation.md

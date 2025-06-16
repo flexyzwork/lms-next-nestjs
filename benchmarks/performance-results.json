@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-06-15T06:29:24Z",
+  "measurements": {
+    "build_times": {
+      "cold_build_seconds": 21.273973000,
+      "cached_build_seconds": 1.473935000,
+      "packages_build_seconds": 1.378313000,
+      "cache_improvement_percent": 93.00
+    },
+    "bundle_sizes": {
+      "web_app_kb": 228132,
+      "auth_service_kb": 600,
+      "api_service_kb": 324,
+      "packages_kb": 584,
+      "total_kb": 229640
+    },
+    "code_metrics": {
+      "total_lines": 22765,
+      "typescript_files":      210,
+      "packages_count":        9,
+      "apps_count":        7
+    }
+  }
+}
