@@ -36,49 +36,16 @@ pnpm setup
 각 앱의 환경 변수를 설정하세요:
 
 **apps/auth/.env**
-```env
-# 데이터베이스
-DATABASE_URL="postgresql://username:password@localhost:5432/lms_db"
+```bash
+# .envs/.env.local 작성
+cp ./.envs/.env.example ./.envs/.env.local
+# 작성한 .env.local 파일을 각 앱의 .env로 연결
+cd apps/api && ln -s  ../../.envs/.env.local .env
+cd apps/auth && ln -s  ../../.envs/.env.local .env
+cd apps/web && ln -s  ../../.envs/.env.local .env
 
-# JWT 설정
-JWT_ACCESS_SECRET="your-super-secret-jwt-key"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key"
-JWT_EXPIRES_IN="15m"
-JWT_REFRESH_EXPIRES_IN="7d"
-
-# Redis 설정
-REDIS_HOST="localhost"
-REDIS_PORT=6379
-REDIS_PASSWORD=""
-
-# 서버 설정
-PORT=4000
-NODE_ENV="development"
-
-# 소셜 인증 (선택사항)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GITHUB_CLIENT_ID="your-github-client-id"
-GITHUB_CLIENT_SECRET="your-github-client-secret"
-```
-
-**apps/api/.env**
-```env
-# Auth 서비스 연결
-AUTH_SERVICE_URL="http://localhost:4000"
-
-# API 포트
-API_PORT=4001
-
-# 데이터베이스
-DATABASE_URL="postgresql://username:password@localhost:5432/lms_db"
-```
-
-**apps/web/.env.local**
-```env
-# API 연결
-NEXT_PUBLIC_API_URL="http://localhost:4001"
-NEXT_PUBLIC_AUTH_URL="http://localhost:4000"
+# packages/database/.env 작성
+cp packages/database/.env.example packages/database/.env
 ```
 
 ### 3단계: 개발 서버 실행

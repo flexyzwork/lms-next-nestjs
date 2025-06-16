@@ -18,6 +18,7 @@ yarn-error.log*
 .env.*
 .env
 .envs/*
+!.env.example
 
 # Turbo
 .turbo
