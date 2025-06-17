@@ -84,15 +84,11 @@ export class CoursesController {
   @ApiResponse({ status: 200, description: '강의 목록 조회 성공' })
   @ApiResponse({ status: 500, description: '서버 오류' })
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 분당 20회 제한
-  async listCourses(
-    @Query() query: any
-  ) {
+  async listCourses(@Query() query: any) {
     // 수동으로 카테고리 값 추출 및 검증
     const category = query?.category || undefined;
 
-    this.logger.log(
-      `강의 목록 조회 요청 - 카테고리: ${category || '전체'}`
-    );
+    this.logger.log(`강의 목록 조회 요청 - 카테고리: ${category || '전체'}`);
 
     const result = await this.coursesService.findAllCourses(category);
 
@@ -125,20 +121,28 @@ export class CoursesController {
 
     // 권한 검증: 강사 또는 관리자만 강의 생성 가능
     if (!RoleUtils.canManageCourses(user.role)) {
-      this.logger.warn(`강의 생성 권한 없음 - 사용자: ${user.id}, 역할: ${user.role}`);
+      this.logger.warn(
+        `강의 생성 권한 없음 - 사용자: ${user.id}, 역할: ${user.role}`
+      );
       throw new ForbiddenException({
         code: 'INSUFFICIENT_PERMISSIONS',
-        message: '강의 생성 권한이 없습니다. 강사 또는 관리자 권한이 필요합니다.',
+        message:
+          '강의 생성 권한이 없습니다. 강사 또는 관리자 권한이 필요합니다.',
         allowedRoles: ['INSTRUCTOR', 'TEACHER', 'ADMIN'],
         userRole: user.role,
         isInstructor: RoleUtils.isInstructor(user.role),
-        isAdmin: RoleUtils.isAdmin(user.role)
+        isAdmin: RoleUtils.isAdmin(user.role),
       });
     }
 
-    const result = await this.coursesService.createCourse(createCourseDto, user.id);
+    const result = await this.coursesService.createCourse(
+      createCourseDto,
+      user.id
+    );
 
-    this.logger.log(`✅ 강의 생성 완료 - ID: ${result.data.courseId}, 강사: ${user.role}`);
+    this.logger.log(
+      `✅ 강의 생성 완료 - ID: ${result.data.courseId}, 강사: ${user.role}`
+    );
     return result;
   }
 
@@ -193,12 +197,20 @@ export class CoursesController {
       this.logger.log(`Course ID: ${courseId}`);
       this.logger.log(`User: ${user.id} (${user.role})`);
       this.logger.log(`Raw Body Type: ${typeof updateCourseDto}`);
-      this.logger.log(`Raw Body Content:`, JSON.stringify(updateCourseDto, null, 2));
-      this.logger.log(`File Info:`, file ? {
-        name: file.originalname,
-        type: file.mimetype,
-        size: file.size
-      } : 'No file');
+      this.logger.log(
+        `Raw Body Content:`,
+        JSON.stringify(updateCourseDto, null, 2)
+      );
+      this.logger.log(
+        `File Info:`,
+        file
+          ? {
+              name: file.originalname,
+              type: file.mimetype,
+              size: file.size,
+            }
+          : 'No file'
+      );
 
       // 데이터 안전 처리
       const safeData: any = {};
@@ -215,7 +227,10 @@ export class CoursesController {
         safeData.category = String(updateCourseDto.category).trim();
       }
 
-      if (updateCourseDto?.price !== undefined && updateCourseDto.price !== '') {
+      if (
+        updateCourseDto?.price !== undefined &&
+        updateCourseDto.price !== ''
+      ) {
         const price = parseFloat(String(updateCourseDto.price));
         if (!isNaN(price) && price >= 0) {
           safeData.price = price;
@@ -242,17 +257,23 @@ export class CoursesController {
 
       this.logger.log(`=== 강의 수정 완료 ===`);
       return result;
-
     } catch (error) {
       this.logger.error(`=== Controller Error ===`);
       this.logger.error(`Course ID: ${courseId}`);
-      this.logger.error(`Error Type: ${error?.constructor?.name}`);
-      this.logger.error(`Error Message: ${error?.message}`);
+      this.logger.error(
+        `Error Type: ${error instanceof Error ? error.constructor.name : 'Unknown'}`
+      );
+      this.logger.error(
+        `Error Message: ${error instanceof Error ? error.message : String(error)}`
+      );
       if ((error as Error)?.stack) {
         this.logger.error(`Stack Trace:`);
-        (error as Error)?.stack?.split('\n').slice(0, 8).forEach((line: string, i: number) => {
-          this.logger.error(`  ${i + 1}. ${line.trim()}`);
-        });
+        (error as Error)?.stack
+          ?.split('\n')
+          .slice(0, 8)
+          .forEach((line: string, i: number) => {
+            this.logger.error(`  ${i + 1}. ${line.trim()}`);
+          });
       }
       throw error;
     }
@@ -275,7 +296,9 @@ export class CoursesController {
     @Param('courseId') courseId: string,
     @CurrentUser() user: User
   ) {
-    this.logger.log(`강의 삭제 요청 - ID: ${courseId}, 사용자: ${user.id}, 역할: ${user.role}`);
+    this.logger.log(
+      `강의 삭제 요청 - ID: ${courseId}, 사용자: ${user.id}, 역할: ${user.role}`
+    );
 
     const result = await this.coursesService.deleteCourse(courseId, user.id);
 
@@ -305,7 +328,7 @@ export class CoursesController {
     // 수동으로 데이터 검증
     const processedData = {
       fileName: uploadVideoUrlDto?.fileName || '',
-      fileType: uploadVideoUrlDto?.fileType || ''
+      fileType: uploadVideoUrlDto?.fileType || '',
     };
 
     if (!processedData.fileName || !processedData.fileType) {
