@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PrismaService, RedisService } from '@packages/database';
-import { generateId } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
+import { generateId, parseTimeString } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
 import { RegisterDto, LoginDto } from './schemas/auth.schema';
 import {
   JwtPayload,
@@ -23,8 +23,12 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly MAX_LOGIN_ATTEMPTS = 5;
-  private readonly LOCKOUT_DURATION = 15 * 60; // 15분
+  
+  // 🔐 보안 설정값들 - 환경변수에서 동적으로 로드
+  private readonly maxLoginAttempts: number;
+  private readonly lockoutDuration: number;
+  private readonly maxIpAttempts: number;
+  private readonly logAuthAttempts: boolean;
 
   constructor(
     private usersService: UsersService,
@@ -33,28 +37,31 @@ export class AuthService {
     private redisService: RedisService,
     private prismaService: PrismaService
   ) {
-    // 환경 변수 디버깅
-    const accessSecret = this.configService.get<string>(
-      'jwt.accessToken.secret'
-    );
-    const refreshSecret = this.configService.get<string>(
-      'jwt.refreshToken.secret'
-    );
-    const expiresIn = this.configService.get<string>(
-      'jwt.accessToken.expiresIn'
-    );
+    // 🔐 보안 설정값 초기화
+    const securityConfig = this.configService.get('security.bruteForce');
+    this.maxLoginAttempts = securityConfig?.maxLoginAttempts || 5;
+    this.lockoutDuration = (securityConfig?.lockoutDurationMinutes || 15) * 60; // 분 -> 초 변환
+    this.maxIpAttempts = securityConfig?.maxIpAttempts || 10;
+    this.logAuthAttempts = this.configService.get('security.logging.logAuthAttempts', true);
 
-    this.logger.log('🔍 JWT 설정 상태:');
-    this.logger.log(
-      `  - Access Secret: ${accessSecret ? accessSecret.substring(0, 8) + '...' : '없음'}`
-    );
-    this.logger.log(
-      `  - Refresh Secret: ${refreshSecret ? refreshSecret.substring(0, 8) + '...' : '없음'}`
-    );
-    this.logger.log(`  - Expires In: ${expiresIn}`);
-    this.logger.log(
-      `  - JWT_ACCESS_SECRET 환경변수: ${process.env.JWT_ACCESS_SECRET ? process.env.JWT_ACCESS_SECRET.substring(0, 8) + '...' : '없음'}`
-    );
+    // 🔍 설정 상태 로깅
+    this.logger.log('🔐 보안 설정 로드 완료:');
+    this.logger.log(`  - 최대 로그인 시도: ${this.maxLoginAttempts}회`);
+    this.logger.log(`  - 계정 잠금 시간: ${this.lockoutDuration / 60}분`);
+    this.logger.log(`  - IP별 최대 시도: ${this.maxIpAttempts}회`);
+    this.logger.log(`  - 인증 로깅: ${this.logAuthAttempts ? '활성화' : '비활성화'}`);
+
+    // JWT 설정 디버깅 (개발 환경에서만)
+    if (this.configService.get('security.logging.logSensitiveData', false)) {
+      const accessSecret = this.configService.get<string>('jwt.accessToken.secret');
+      const refreshSecret = this.configService.get<string>('jwt.refreshToken.secret');
+      const expiresIn = this.configService.get<string>('jwt.accessToken.expiresIn');
+
+      this.logger.debug('🔍 JWT 설정 상태:');
+      this.logger.debug(`  - Access Secret: ${accessSecret ? accessSecret.substring(0, 8) + '...' : '없음'}`);
+      this.logger.debug(`  - Refresh Secret: ${refreshSecret ? refreshSecret.substring(0, 8) + '...' : '없음'}`);
+      this.logger.debug(`  - Expires In: ${expiresIn}`);
+    }
   }
 
   /**
@@ -374,8 +381,16 @@ export class AuthService {
 
   /**
    * 토큰 쌍 생성
+   * 
+   * 비즈니스 로직:
+   * 1. JWT 페이로드 생성 (sub 클레임 사용)
+   * 2. 리프레시 토큰에 고유 ID 추가
+   * 3. 비동기로 동시 생성
+   * 4. Redis에 리프레시 토큰 저장
+   * 5. 만료 시간 계산 및 반환
+   * 
    * @param user 사용자 정보
-   * @returns 토큰 쌍
+   * @returns 토큰 쌍 (accessToken, refreshToken, expiresIn, tokenType)
    */
   private async generateTokenPair(user: any): Promise<TokenPair> {
     // 표준 JWT 페이로드 (중복 필드 제거)
@@ -416,14 +431,14 @@ export class AuthService {
       this.logger.log(`✅ JWT 토큰 생성 완료 - 사용자: ${user.email}`);
       this.logger.debug('🔍 생성된 Access Token 미리보기:', accessToken.substring(0, 50) + '...');
 
-      // 리프레시 토큰을 Redis에 저장
-      const refreshExpiresIn = this.parseExpirationTime(
+      // 리프레시 토큰을 Redis에 저장 (유틸리티 함수 사용)
+      const refreshExpiresIn = parseTimeString(
         this.configService.get<string>('jwt.refreshToken.expiresIn', '7d')
       );
       await this.redisService.storeRefreshToken(user.id, tokenId, refreshExpiresIn);
 
-      // 만료 시간 계산
-      const accessExpiresIn = this.parseExpirationTime(
+      // 만료 시간 계산 (유틸리티 함수 사용)
+      const accessExpiresIn = parseTimeString(
         this.configService.get<string>('jwt.accessToken.expiresIn', '15m')
       );
 
@@ -453,12 +468,14 @@ export class AuthService {
       ? await this.redisService.getLoginAttempts(ipAddress)
       : 0;
 
+    // 🔐 동적 설정값 사용
     if (
-      emailAttempts >= this.MAX_LOGIN_ATTEMPTS ||
-      ipAttempts >= this.MAX_LOGIN_ATTEMPTS
+      emailAttempts >= this.maxLoginAttempts ||
+      ipAttempts >= this.maxIpAttempts
     ) {
+      const lockoutMinutes = this.lockoutDuration / 60;
       throw new BadRequestException(
-        `너무 많은 로그인 시도가 있었습니다. ${this.LOCKOUT_DURATION / 60}분 후에 다시 시도해주세요.`
+        `너무 많은 로그인 시도가 있었습니다. ${lockoutMinutes}분 후에 다시 시도해주세요.`
       );
     }
   }
@@ -474,26 +491,28 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<void> {
-    // 실패 횟수 증가
+    // 실패 횟수 증가 (동적 설정값 사용)
     await this.redisService.incrementLoginAttempts(
       email,
-      this.LOCKOUT_DURATION
+      this.lockoutDuration
     );
     if (ipAddress) {
       await this.redisService.incrementLoginAttempts(
         ipAddress,
-        this.LOCKOUT_DURATION
+        this.lockoutDuration
       );
     }
 
-    // 로그인 히스토리 기록
-    await this.createLoginHistory({
-      email,
-      success: false,
-      ipAddress,
-      userAgent,
-      provider: 'local',
-    });
+    // 로그인 히스토리 기록 (설정에 따라 선택적)
+    if (this.logAuthAttempts) {
+      await this.createLoginHistory({
+        email,
+        success: false,
+        ipAddress,
+        userAgent,
+        provider: 'local',
+      });
+    }
 
     this.logger.warn(`로그인 실패: ${email} (IP: ${ipAddress})`);
   }
@@ -520,15 +539,17 @@ export class AuthService {
     // 마지막 로그인 시간 업데이트
     await this.usersService.updateLastLogin(userId);
 
-    // 로그인 히스토리 기록
-    await this.createLoginHistory({
-      userId,
-      email,
-      success: true,
-      ipAddress,
-      userAgent,
-      provider: 'local',
-    });
+    // 로그인 히스토리 기록 (설정에 따라 선택적)
+    if (this.logAuthAttempts) {
+      await this.createLoginHistory({
+        userId,
+        email,
+        success: true,
+        ipAddress,
+        userAgent,
+        provider: 'local',
+      });
+    }
 
     this.logger.log(`로그인 성공: ${email} (IP: ${ipAddress})`);
   }
@@ -559,36 +580,6 @@ export class AuthService {
         error instanceof Error ? error.message : '로그인 히스토리 저장 실패';
       this.logger.error(`로그인 히스토리 저장 실패: ${errorMessage}`);
       // 히스토리 저장 실패는 전체 로그인 프로세스에 영향 주지 않음
-    }
-  }
-
-  /**
-   * 만료 시간 문자열을 초 단위로 변환
-   * @param expiresIn 만료 시간 문자열 (예: '7d', '24h', '60m')
-   * @returns 초 단위 시간
-   */
-  private parseExpirationTime(expiresIn: string): number {
-    const regex = /^(\d+)([dhms])$/;
-    const match = expiresIn.match(regex);
-
-    if (!match) {
-      throw new BadRequestException('잘못된 만료 시간 형식입니다');
-    }
-
-    const value = parseInt(match[1], 10);
-    const unit = match[2];
-
-    switch (unit) {
-      case 'd':
-        return value * 24 * 60 * 60; // 일
-      case 'h':
-        return value * 60 * 60; // 시간
-      case 'm':
-        return value * 60; // 분
-      case 's':
-        return value; // 초
-      default:
-        throw new BadRequestException('지원하지 않는 시간 단위입니다');
     }
   }
 

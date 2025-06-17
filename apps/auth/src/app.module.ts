@@ -8,6 +8,7 @@ import { databaseConfig } from '@packages/config';
 import { jwtConfig } from '@packages/config';
 import { redisConfig } from '@packages/config';
 import { socialConfig } from '@packages/config';
+import { securityConfig } from '@packages/config';
 
 // 모듈들
 import { AppController } from './app.controller';
@@ -27,7 +28,7 @@ import { LoggingInterceptor } from '@packages/common';
     // 설정 모듈
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, jwtConfig, redisConfig, socialConfig],
+      load: [databaseConfig, jwtConfig, redisConfig, socialConfig, securityConfig],
       envFilePath: ['.env', '.env.development'],
     }),
 

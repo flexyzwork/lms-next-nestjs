@@ -18,6 +18,11 @@ import {
 import express from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import {
+  extractClientIp,
+  extractBearerToken,
+  prepareSecurityLogData,
+} from '@packages/common';
 
 // 임시로 직접 정의
 const IS_PUBLIC_KEY = 'isPublic';
@@ -97,8 +102,17 @@ export class AuthController {
   @ZodBody(loginSchema)
   async login(@Body() loginDto: LoginDto, @Req() req: express.Request) {
     try {
-      const clientIp = this.getClientIp(req);
+      // 🔍 유틸리티 함수로 청리해진 IP 및 에이전트 추출
+      const clientIp = extractClientIp(req);
       const userAgent = req.get('User-Agent');
+
+      // 📈 보안 로깅 데이터 준비
+      const securityLogData = prepareSecurityLogData(req, {
+        action: 'login_attempt',
+        email: loginDto.email,
+      });
+
+      this.logger.log(`로그인 시도: ${loginDto.email}`, securityLogData);
 
       const result = await this.authService.login(
         loginDto,
@@ -171,7 +185,17 @@ export class AuthController {
     @Req() req: express.Request
   ) {
     try {
-      const accessToken = this.extractTokenFromHeader(req);
+      // 🔍 유틸리티 함수로 토큰 추출
+      const accessToken = extractBearerToken(req);
+      
+      // 📈 보안 로깅
+      const securityLogData = prepareSecurityLogData(req, {
+        action: 'logout',
+        userId,
+      });
+      
+      this.logger.log(`로그아웃 시도: ${userId}`, securityLogData);
+      
       await this.authService.logout(userId, accessToken);
 
       return {
@@ -307,32 +331,5 @@ export class AuthController {
     };
   }
 
-  // === 유틸리티 메서드 ===
-
-  /**
-   * 클라이언트 IP 주소 추출
-   * @param req Request 객체
-   * @returns IP 주소
-   */
-  private getClientIp(req: express.Request): string {
-    return ((req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.headers['x-real-ip'] ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      req.ip ||
-      '알 수 없음') as string;
-  }
-
-  /**
-   * Authorization 헤더에서 토큰 추출
-   * @param req Request 객체
-   * @returns JWT 토큰
-   */
-  private extractTokenFromHeader(req: express.Request): string {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Bearer 토큰이 필요합니다');
-    }
-    return authHeader.substring(7);
-  }
+  // === 디버깅 및 헬스체크 메서드들 ===
 }

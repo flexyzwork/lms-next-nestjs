@@ -12,6 +12,15 @@ export { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export { LoggingInterceptor } from './interceptors/logging.interceptor';
 export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 
+// 🛡️ 보안 미들웨어 (서버 환경에서만 사용 가능)
+// export {
+//   setupSecurityMiddleware,
+//   setupDevelopmentMiddleware,
+//   setupRequestLogging,
+//   setupHealthCheck,
+//   setupAllMiddleware,
+// } from './middleware/security.middleware';
+
 // 🔐 인증 스키마 (통합 스키마에서 re-export)
 export {
   // 기본 검증 스키마
@@ -94,6 +103,22 @@ export {
   generateTypedId,
   type Cuid2,
 } from './utils/id.utils';
+
+// 🔐 인증 유틸리티
+export {
+  extractClientIp,
+  extractBearerToken,
+  parseUserAgent,
+  prepareSecurityLogData,
+  parseTimeString,
+  checkPasswordStrength,
+  maskEmail,
+  maskPhone,
+  sanitizeUser,
+  validateRequestSize,
+  createRateLimitKey,
+  generateDeviceFingerprint,
+} from './utils/auth.utils';
 
 // 📚 강의 관리 스키마 (API 전용)
 export {

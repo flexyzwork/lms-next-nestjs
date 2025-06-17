@@ -1,489 +1,333 @@
-// ==============================
-// 🔐 인증 관련 유틸리티 함수들
-// ==============================
+/**
+ * 🔐 인증 관련 유틸리티 함수들
+ * 중복되는 인증 로직을 모아둔 유틸리티 모듈입니다.
+ */
 
-// 토큰 관리 유틸리티
-export class TokenManager {
-  private static readonly ACCESS_TOKEN_KEY = 'accessToken';
-  private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
-  private static readonly TOKEN_PREFIX = 'lms_';
+import { BadRequestException } from '@nestjs/common';
 
-  static setTokens(accessToken: string, refreshToken: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.TOKEN_PREFIX + this.ACCESS_TOKEN_KEY, accessToken);
-      localStorage.setItem(this.TOKEN_PREFIX + this.REFRESH_TOKEN_KEY, refreshToken);
-    }
+/**
+ * 클라이언트 IP 주소 추출
+ * 프록시, 로드밸런서, CDN 환경을 고려한 안전한 IP 추출
+ * 
+ * @param req Express Request 객체
+ * @returns 클라이언트의 실제 IP 주소
+ */
+export function extractClientIp(req: any): string {
+  // 다양한 프록시 헤더들을 순서대로 확인
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  const cfConnectingIp = req.headers['cf-connecting-ip']; // Cloudflare
+  const xClientIp = req.headers['x-client-ip'];
+  const xForwardedFor = req.headers['x-forwarded-for'];
+
+  // x-forwarded-for는 여러 IP가 쉼표로 구분될 수 있음 (첫 번째가 실제 클라이언트)
+  if (forwardedFor) {
+    const ips = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+    return ips.split(',')[0].trim();
   }
 
-  static getAccessToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(this.TOKEN_PREFIX + this.ACCESS_TOKEN_KEY);
-    }
-    return null;
-  }
+  // 다른 헤더들 확인
+  if (cfConnectingIp) return cfConnectingIp;
+  if (realIp) return realIp;
+  if (xClientIp) return xClientIp;
 
-  static getRefreshToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(this.TOKEN_PREFIX + this.REFRESH_TOKEN_KEY);
-    }
-    return null;
-  }
-
-  static clearTokens(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.TOKEN_PREFIX + this.ACCESS_TOKEN_KEY);
-      localStorage.removeItem(this.TOKEN_PREFIX + this.REFRESH_TOKEN_KEY);
-    }
-  }
-
-  static hasTokens(): boolean {
-    return this.getAccessToken() !== null && this.getRefreshToken() !== null;
-  }
-
-  static isTokenExpired(token: string): boolean {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      // 30초 여유를 두고 체크
-      return payload.exp < (currentTime + 30);
-    } catch {
-      return true;
-    }
-  }
-
-  static getTokenPayload(token: string): any | null {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch {
-      return null;
-    }
-  }
-
-  static isValidTokenFormat(token: string): boolean {
-    if (!token || typeof token !== 'string') return false;
-    const parts = token.split('.');
-    return parts.length === 3;
-  }
-
-  static getTokenExpiryDate(token: string): Date | null {
-    const payload = this.getTokenPayload(token);
-    if (!payload || !payload.exp) return null;
-    return new Date(payload.exp * 1000);
-  }
+  // 직접 연결된 경우
+  return req.connection?.remoteAddress || 
+         req.socket?.remoteAddress || 
+         req.ip || 
+         '알 수 없음';
 }
 
-// 비밀번호 검증 유틸리티
-export class PasswordValidator {
-  static validateStrength(password: string) {
-    if (!password) {
-      return {
-        score: 0,
-        strength: 'none' as const,
-        checks: {
-          length: false,
-          lowercase: false,
-          uppercase: false,
-          numbers: false,
-          symbols: false,
-        },
-        suggestions: ['비밀번호를 입력해주세요'],
-      };
-    }
+/**
+ * Authorization 헤더에서 Bearer 토큰 추출
+ * 
+ * @param req Express Request 객체
+ * @returns JWT 토큰 문자열
+ * @throws UnauthorizedException Bearer 토큰이 없는 경우
+ */
+export function extractBearerToken(req: any): string {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    throw new BadRequestException('Authorization 헤더가 필요합니다');
+  }
 
-    const checks = {
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      numbers: /\d/.test(password),
-      symbols: /[@$!%*?&]/.test(password),
-    };
+  if (!authHeader.startsWith('Bearer ')) {
+    throw new BadRequestException('Bearer 토큰 형식이 올바르지 않습니다');
+  }
 
-    let score = 0;
-    if (checks.length) score += 1;
-    if (checks.lowercase) score += 1;
-    if (checks.uppercase) score += 1;
-    if (checks.numbers) score += 1;
-    if (checks.symbols) score += 1;
+  const token = authHeader.substring(7); // 'Bearer ' 제거
+  
+  if (!token || token.trim() === '') {
+    throw new BadRequestException('토큰이 비어있습니다');
+  }
 
-    let strength: 'none' | 'weak' | 'medium' | 'strong';
-    if (score === 0) strength = 'none';
-    else if (score <= 2) strength = 'weak';
-    else if (score <= 4) strength = 'medium';
-    else strength = 'strong';
+  return token.trim();
+}
 
+/**
+ * 사용자 에이전트 정보 파싱
+ * 
+ * @param userAgent User-Agent 헤더 값
+ * @returns 파싱된 브라우저/기기 정보
+ */
+export function parseUserAgent(userAgent?: string) {
+  if (!userAgent) {
     return {
-      score,
-      strength,
-      checks,
-      suggestions: [
-        !checks.length && '최소 8자 이상 입력하세요',
-        !checks.lowercase && '소문자를 포함하세요',
-        !checks.uppercase && '대문자를 포함하세요',
-        !checks.numbers && '숫자를 포함하세요',
-        !checks.symbols && '특수문자(@$!%*?&)를 포함하세요',
-      ].filter(Boolean),
+      browser: '알 수 없음',
+      os: '알 수 없음',
+      device: '알 수 없음',
+      raw: '알 수 없음'
     };
   }
 
-  static getStrengthColor(strength: string): string {
-    switch (strength) {
-      case 'weak':
-        return 'text-red-500';
-      case 'medium':
-        return 'text-yellow-500';
-      case 'strong':
-        return 'text-green-500';
-      default:
-        return 'text-gray-500';
-    }
+  // 간단한 브라우저 감지
+  let browser = '알 수 없음';
+  if (userAgent.includes('Chrome')) browser = 'Chrome';
+  else if (userAgent.includes('Firefox')) browser = 'Firefox';
+  else if (userAgent.includes('Safari')) browser = 'Safari';
+  else if (userAgent.includes('Edge')) browser = 'Edge';
+
+  // 간단한 OS 감지
+  let os = '알 수 없음';
+  if (userAgent.includes('Windows')) os = 'Windows';
+  else if (userAgent.includes('Mac')) os = 'macOS';
+  else if (userAgent.includes('Linux')) os = 'Linux';
+  else if (userAgent.includes('Android')) os = 'Android';
+  else if (userAgent.includes('iOS')) os = 'iOS';
+
+  // 간단한 기기 감지
+  let device = 'Desktop';
+  if (userAgent.includes('Mobile')) device = 'Mobile';
+  else if (userAgent.includes('Tablet')) device = 'Tablet';
+
+  return {
+    browser,
+    os,
+    device,
+    raw: userAgent
+  };
+}
+
+/**
+ * 보안 이벤트 로깅용 데이터 준비
+ * 민감한 정보는 제외하고 필요한 정보만 추출
+ * 
+ * @param req Express Request 객체
+ * @param additionalData 추가 로깅 데이터
+ * @returns 로깅용 보안 데이터
+ */
+export function prepareSecurityLogData(req: any, additionalData: any = {}) {
+  const ip = extractClientIp(req);
+  const userAgent = parseUserAgent(req.get('User-Agent'));
+  
+  return {
+    timestamp: new Date().toISOString(),
+    requestId: req.requestId || 'unknown',
+    ip,
+    userAgent: userAgent.raw,
+    browser: userAgent.browser,
+    os: userAgent.os,
+    device: userAgent.device,
+    method: req.method,
+    url: req.url,
+    referer: req.get('Referer') || null,
+    ...additionalData
+  };
+}
+
+/**
+ * 시간 문자열을 초 단위로 변환
+ * JWT 만료 시간 등에 사용
+ * 
+ * @param timeString 시간 문자열 (예: '7d', '24h', '60m', '30s')
+ * @returns 초 단위 시간
+ * @throws BadRequestException 잘못된 형식
+ */
+export function parseTimeString(timeString: string): number {
+  const regex = /^(\d+)([dhms])$/;
+  const match = timeString.match(regex);
+
+  if (!match) {
+    throw new BadRequestException(`잘못된 시간 형식입니다: ${timeString}`);
   }
 
-  static getStrengthText(strength: string): string {
-    switch (strength) {
-      case 'none':
-        return '없음';
-      case 'weak':
-        return '약함';
-      case 'medium':
-        return '보통';
-      case 'strong':
-        return '강함';
-      default:
-        return '알 수 없음';
-    }
-  }
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
 
-  static getStrengthProgress(strength: string): number {
-    switch (strength) {
-      case 'weak':
-        return 25;
-      case 'medium':
-        return 60;
-      case 'strong':
-        return 100;
-      default:
-        return 0;
-    }
+  switch (unit) {
+    case 'd': return value * 24 * 60 * 60; // 일
+    case 'h': return value * 60 * 60;      // 시간  
+    case 'm': return value * 60;           // 분
+    case 's': return value;                // 초
+    default:
+      throw new BadRequestException(`지원하지 않는 시간 단위입니다: ${unit}`);
   }
 }
 
-// 폼 검증 헬퍼
-export class FormValidator {
-  static validateEmail(email: string): string | null {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) return '이메일을 입력해주세요';
-    if (email.length > 255) return '이메일은 255자를 초과할 수 없습니다';
-    if (!emailRegex.test(email)) return '올바른 이메일 형식이 아닙니다';
-    return null;
+/**
+ * 비밀번호 강도 검사
+ * 
+ * @param password 검사할 비밀번호
+ * @returns 강도 점수 및 상세 정보
+ */
+export function checkPasswordStrength(password: string) {
+  let score = 0;
+  const checks = {
+    length: password.length >= 8,
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    numbers: /\d/.test(password),
+    symbols: /[@$!%*?&]/.test(password),
+    noCommonPatterns: !/(123|abc|password|admin)/i.test(password),
+  };
+
+  // 각 조건당 1점
+  Object.values(checks).forEach(check => {
+    if (check) score += 1;
+  });
+
+  // 추가 점수 (길이에 따라)
+  if (password.length >= 12) score += 1;
+  if (password.length >= 16) score += 1;
+
+  const strength = score <= 3 ? 'weak' : score <= 5 ? 'medium' : 'strong';
+
+  return {
+    score,
+    maxScore: 8,
+    strength,
+    checks,
+    suggestions: [
+      !checks.length && '최소 8자 이상 입력하세요',
+      !checks.lowercase && '소문자를 포함하세요',
+      !checks.uppercase && '대문자를 포함하세요',
+      !checks.numbers && '숫자를 포함하세요',
+      !checks.symbols && '특수문자(@$!%*?&)를 포함하세요',
+      !checks.noCommonPatterns && '흔한 패턴(123, abc, password 등)을 피하세요',
+      password.length < 12 && '12자 이상 사용하면 더 안전합니다',
+    ].filter(Boolean),
+  };
+}
+
+/**
+ * 이메일 마스킹
+ * 개인정보 보호를 위해 이메일 일부를 마스킹
+ * 
+ * @param email 마스킹할 이메일
+ * @returns 마스킹된 이메일
+ */
+export function maskEmail(email: string): string {
+  if (!email || !email.includes('@')) {
+    return '***@***.***';
   }
 
-  static validatePassword(password: string): string | null {
-    if (!password) return '비밀번호를 입력해주세요';
-    if (password.length < 8) return '비밀번호는 최소 8자 이상이어야 합니다';
-    if (password.length > 128) return '비밀번호는 128자를 초과할 수 없습니다';
-    
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[@$!%*?&]/.test(password);
+  const [localPart, domain] = email.split('@');
+  const maskedLocal = localPart.length <= 2 
+    ? localPart 
+    : localPart[0] + '*'.repeat(localPart.length - 2) + localPart[localPart.length - 1];
+  
+  const domainParts = domain.split('.');
+  const maskedDomain = domainParts.length >= 2
+    ? '*'.repeat(domainParts[0].length) + '.' + domainParts.slice(1).join('.')
+    : '*'.repeat(domain.length);
 
-    if (!hasLowerCase || !hasUpperCase || !hasNumbers || !hasSpecialChar) {
-      return '비밀번호는 대소문자, 숫자, 특수문자(@$!%*?&)를 포함해야 합니다';
-    }
+  return `${maskedLocal}@${maskedDomain}`;
+}
 
-    return null;
+/**
+ * 전화번호 마스킹
+ * 
+ * @param phone 마스킹할 전화번호
+ * @returns 마스킹된 전화번호
+ */
+export function maskPhone(phone: string): string {
+  if (!phone) return '***-****-****';
+  
+  // 숫자만 추출
+  const numbers = phone.replace(/\D/g, '');
+  
+  if (numbers.length === 11 && numbers.startsWith('01')) {
+    // 한국 휴대폰 번호: 010-1234-5678 -> 010-****-5678
+    return `${numbers.slice(0, 3)}-****-${numbers.slice(-4)}`;
   }
+  
+  // 기타 번호는 끝 4자리만 표시
+  return '*'.repeat(Math.max(0, numbers.length - 4)) + numbers.slice(-4);
+}
 
-  static validateUsername(username: string): string | null {
-    if (!username) return null; // username은 optional
-    if (username.length < 3) return '사용자명은 최소 3자 이상이어야 합니다';
-    if (username.length > 30) return '사용자명은 30자를 초과할 수 없습니다';
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      return '사용자명은 영문, 숫자, 언더스코어, 하이픈만 사용할 수 있습니다';
-    }
-    return null;
-  }
+/**
+ * 안전한 사용자 데이터 반환
+ * 민감한 정보를 제거한 사용자 객체 생성
+ * 
+ * @param user 원본 사용자 객체
+ * @returns 안전한 사용자 객체
+ */
+export function sanitizeUser(user: any) {
+  if (!user) return null;
 
-  static validateConfirmPassword(password: string, confirmPassword: string): string | null {
-    if (!confirmPassword) return '비밀번호 확인을 입력해주세요';
-    if (password !== confirmPassword) return '비밀번호가 일치하지 않습니다';
-    return null;
-  }
+  const {
+    password,
+    refreshTokens,
+    resetToken,
+    verificationToken,
+    ...safeUser
+  } = user;
 
-  static validateName(name: string, fieldName: string = '이름'): string | null {
-    if (!name) return null; // 이름은 optional
-    if (name.length > 50) return `${fieldName}은 50자를 초과할 수 없습니다`;
-    if (!/^[가-힣a-zA-Z\s]+$/.test(name)) {
-      return `${fieldName}은 한글, 영문, 공백만 사용할 수 있습니다`;
-    }
-    return null;
-  }
+  return {
+    ...safeUser,
+    email: user.email, // 이메일은 마스킹하지 않음 (필요시 별도 처리)
+    createdAt: user.createdAt?.toISOString?.() || user.createdAt,
+    updatedAt: user.updatedAt?.toISOString?.() || user.updatedAt,
+    lastLoginAt: user.lastLoginAt?.toISOString?.() || user.lastLoginAt,
+  };
+}
 
-  static validatePhone(phone: string): string | null {
-    if (!phone) return null; // 전화번호는 optional
-    const phoneRegex = /^(\+82|0)?(10|11|16|17|18|19)\d{8}$/;
-    if (!phoneRegex.test(phone.replace(/[^0-9+]/g, ''))) {
-      return '올바른 한국 휴대폰 번호 형식이 아닙니다 (예: 010-1234-5678)';
-    }
-    return null;
-  }
-
-  static validateUrl(url: string, fieldName: string = 'URL'): string | null {
-    if (!url) return null; // URL은 optional
-    try {
-      new URL(url);
-      return null;
-    } catch {
-      return `올바른 ${fieldName} 형식이 아닙니다`;
-    }
+/**
+ * 요청 크기 제한 검사
+ * 
+ * @param req Express Request 객체
+ * @param maxSizeBytes 최대 허용 크기 (바이트)
+ * @throws BadRequestException 크기 초과시
+ */
+export function validateRequestSize(req: any, maxSizeBytes: number = 1024 * 1024) { // 기본 1MB
+  const contentLength = parseInt(req.get('content-length') || '0', 10);
+  
+  if (contentLength > maxSizeBytes) {
+    throw new BadRequestException(
+      `요청 크기가 너무 큽니다. 최대 ${Math.round(maxSizeBytes / 1024)}KB까지 허용됩니다.`
+    );
   }
 }
 
-// 인증 상태 관리 유틸리티
-export class AuthStateManager {
-  private static readonly USER_KEY = 'lms_user';
-
-  static setUser(user: any): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    }
-  }
-
-  static getUser(): any | null {
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem(this.USER_KEY);
-      if (userStr) {
-        try {
-          return JSON.parse(userStr);
-        } catch {
-          return null;
-        }
-      }
-    }
-    return null;
-  }
-
-  static clearUser(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.USER_KEY);
-    }
-  }
-
-  static isLoggedIn(): boolean {
-    const user = this.getUser();
-    const accessToken = TokenManager.getAccessToken();
-    
-    if (!user || !accessToken) return false;
-    if (!TokenManager.isValidTokenFormat(accessToken)) return false;
-    if (TokenManager.isTokenExpired(accessToken)) return false;
-    
-    return true;
-  }
-
-  static getUserRole(): string | null {
-    const user = this.getUser();
-    return user?.role || null;
-  }
-
-  static isInstructor(): boolean {
-    return this.getUserRole() === 'INSTRUCTOR';
-  }
-
-  static isAdmin(): boolean {
-    return this.getUserRole() === 'ADMIN';
-  }
-
-  static canAccessAdminFeatures(): boolean {
-    return this.isAdmin();
-  }
-
-  static canCreateCourse(): boolean {
-    return this.isInstructor() || this.isAdmin();
-  }
-
-  static logout(): void {
-    TokenManager.clearTokens();
-    this.clearUser();
-    
-    // 현재 페이지가 보호된 페이지라면 로그인 페이지로 리다이렉트
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
-      window.location.href = '/login';
-    }
-  }
+/**
+ * 레이트 리미팅용 키 생성
+ * 
+ * @param identifier 식별자 (이메일, IP 등)
+ * @param action 액션 타입
+ * @returns Redis 키
+ */
+export function createRateLimitKey(identifier: string, action: string): string {
+  return `rate_limit:${action}:${identifier}`;
 }
 
-// 보안 유틸리티
-export class SecurityUtils {
-  // CSRF 토큰 생성 (간단한 버전)
-  static generateCSRFToken(): string {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-  }
-
-  // 민감한 데이터 마스킹
-  static maskEmail(email: string): string {
-    if (!email || !email.includes('@')) return email;
+/**
+ * 디바이스 지문 생성
+ * 기본적인 디바이스 식별을 위한 해시 생성
+ * 
+ * @param req Express Request 객체
+ * @returns 디바이스 지문 문자열
+ */
+export function generateDeviceFingerprint(req: any): string {
+  const ip = extractClientIp(req);
+  const userAgent = req.get('User-Agent') || '';
+  const acceptLanguage = req.get('Accept-Language') || '';
+  const acceptEncoding = req.get('Accept-Encoding') || '';
+  
+  // 간단한 해시 생성 (실제 프로덕션에서는 crypto 모듈 사용 권장)
+  const fingerprint = Buffer.from(`${ip}:${userAgent}:${acceptLanguage}:${acceptEncoding}`)
+    .toString('base64')
+    .slice(0, 16);
     
-    const [local, domain] = email.split('@');
-    if (local.length <= 2) return email;
-    
-    const maskedLocal = local[0] + '*'.repeat(local.length - 2) + local[local.length - 1];
-    return `${maskedLocal}@${domain}`;
-  }
-
-  static maskPhone(phone: string): string {
-    if (!phone) return phone;
-    
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.length < 8) return phone;
-    
-    const start = cleanPhone.slice(0, 3);
-    const middle = '*'.repeat(4);
-    const end = cleanPhone.slice(-4);
-    
-    return `${start}-${middle}-${end}`;
-  }
-
-  // XSS 방지를 위한 HTML 이스케이프
-  static escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // 안전한 파싱
-  static safeJsonParse(jsonString: string): any | null {
-    try {
-      return JSON.parse(jsonString);
-    } catch {
-      return null;
-    }
-  }
-}
-
-// 세션 관리 유틸리티 
-export class SessionManager {
-  private static readonly SESSION_TIMEOUT = 30 * 60 * 1000; // 30분
-  private static readonly ACTIVITY_KEY = 'lms_last_activity';
-  private static readonly WARNING_TIME = 5 * 60 * 1000; // 5분 전 경고
-
-  static updateActivity(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.ACTIVITY_KEY, Date.now().toString());
-    }
-  }
-
-  static getLastActivity(): number {
-    if (typeof window !== 'undefined') {
-      const activity = localStorage.getItem(this.ACTIVITY_KEY);
-      return activity ? parseInt(activity, 10) : Date.now();
-    }
-    return Date.now();
-  }
-
-  static isSessionExpired(): boolean {
-    const lastActivity = this.getLastActivity();
-    const now = Date.now();
-    return (now - lastActivity) > this.SESSION_TIMEOUT;
-  }
-
-  static shouldShowWarning(): boolean {
-    const lastActivity = this.getLastActivity();
-    const now = Date.now();
-    const timeLeft = this.SESSION_TIMEOUT - (now - lastActivity);
-    return timeLeft <= this.WARNING_TIME && timeLeft > 0;
-  }
-
-  static getTimeUntilExpiry(): number {
-    const lastActivity = this.getLastActivity();
-    const now = Date.now();
-    const timeLeft = this.SESSION_TIMEOUT - (now - lastActivity);
-    return Math.max(0, timeLeft);
-  }
-
-  static formatTimeLeft(milliseconds: number): string {
-    const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor((milliseconds % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }
-
-  static extendSession(): void {
-    this.updateActivity();
-  }
-
-  static startActivityMonitoring(): void {
-    if (typeof window !== 'undefined') {
-      // 사용자 활동 감지
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      
-      const updateActivity = () => this.updateActivity();
-      
-      events.forEach(event => {
-        document.addEventListener(event, updateActivity, true);
-      });
-
-      // 페이지 언로드 시 정리
-      window.addEventListener('beforeunload', () => {
-        events.forEach(event => {
-          document.removeEventListener(event, updateActivity, true);
-        });
-      });
-
-      // 초기 활동 기록
-      this.updateActivity();
-    }
-  }
-}
-
-// 디바이스 정보 유틸리티
-export class DeviceUtils {
-  static getDeviceInfo(): string {
-    if (typeof window === 'undefined') return 'Unknown';
-    
-    const userAgent = navigator.userAgent;
-    let deviceInfo = 'Unknown Device';
-    
-    if (/Android/i.test(userAgent)) {
-      deviceInfo = 'Android Device';
-    } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
-      deviceInfo = 'iOS Device';
-    } else if (/Windows/i.test(userAgent)) {
-      deviceInfo = 'Windows PC';
-    } else if (/Macintosh|Mac OS X/i.test(userAgent)) {
-      deviceInfo = 'Mac';
-    } else if (/Linux/i.test(userAgent)) {
-      deviceInfo = 'Linux PC';
-    }
-    
-    return deviceInfo;
-  }
-
-  static getBrowserInfo(): string {
-    if (typeof window === 'undefined') return 'Unknown Browser';
-    
-    const userAgent = navigator.userAgent;
-    
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Edge')) return 'Edge';
-    if (userAgent.includes('Opera')) return 'Opera';
-    
-    return 'Unknown Browser';
-  }
-
-  static isMobile(): boolean {
-    if (typeof window === 'undefined') return false;
-    return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }
-
-  static isTablet(): boolean {
-    if (typeof window === 'undefined') return false;
-    return /iPad|Android(?!.*Mobile)/i.test(navigator.userAgent);
-  }
-
-  static isDesktop(): boolean {
-    return !this.isMobile() && !this.isTablet();
-  }
+  return fingerprint;
 }
