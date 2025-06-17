@@ -89,7 +89,7 @@ export class CoursesController {
   ) {
     // 수동으로 카테고리 값 추출 및 검증
     const category = query?.category || undefined;
-    
+
     this.logger.log(
       `강의 목록 조회 요청 - 카테고리: ${category || '전체'}`
     );
@@ -199,37 +199,37 @@ export class CoursesController {
         type: file.mimetype,
         size: file.size
       } : 'No file');
-      
+
       // 데이터 안전 처리
       const safeData: any = {};
-      
+
       if (updateCourseDto?.title && updateCourseDto.title.trim()) {
         safeData.title = String(updateCourseDto.title).trim();
       }
-      
+
       if (updateCourseDto?.description !== undefined) {
         safeData.description = String(updateCourseDto.description || '').trim();
       }
-      
+
       if (updateCourseDto?.category && updateCourseDto.category.trim()) {
         safeData.category = String(updateCourseDto.category).trim();
       }
-      
+
       if (updateCourseDto?.price !== undefined && updateCourseDto.price !== '') {
         const price = parseFloat(String(updateCourseDto.price));
         if (!isNaN(price) && price >= 0) {
           safeData.price = price;
         }
       }
-      
+
       if (updateCourseDto?.level) {
         safeData.level = String(updateCourseDto.level);
       }
-      
+
       if (updateCourseDto?.status) {
         safeData.status = String(updateCourseDto.status);
       }
-      
+
       this.logger.log(`Processed Data:`, JSON.stringify(safeData, null, 2));
       this.logger.log(`=== Service 호출 시작 ===`);
 
@@ -242,15 +242,15 @@ export class CoursesController {
 
       this.logger.log(`=== 강의 수정 완료 ===`);
       return result;
-      
+
     } catch (error) {
       this.logger.error(`=== Controller Error ===`);
       this.logger.error(`Course ID: ${courseId}`);
-      this.logger.error(`Error Type: ${error.constructor?.name}`);
-      this.logger.error(`Error Message: ${error.message}`);
-      if (error.stack) {
+      this.logger.error(`Error Type: ${error?.constructor?.name}`);
+      this.logger.error(`Error Message: ${error?.message}`);
+      if ((error as Error)?.stack) {
         this.logger.error(`Stack Trace:`);
-        error.stack.split('\n').slice(0, 8).forEach((line: string, i: number) => {
+        (error as Error)?.stack?.split('\n').slice(0, 8).forEach((line: string, i: number) => {
           this.logger.error(`  ${i + 1}. ${line.trim()}`);
         });
       }
@@ -307,11 +307,11 @@ export class CoursesController {
       fileName: uploadVideoUrlDto?.fileName || '',
       fileType: uploadVideoUrlDto?.fileType || ''
     };
-    
+
     if (!processedData.fileName || !processedData.fileType) {
       throw new BadRequestException('파일명과 파일 타입은 필수입니다');
     }
-    
+
     this.logger.log(
       `비디오 업로드 URL 요청 - 강의: ${courseId}, 챕터: ${chapterId}, 파일: ${processedData.fileName}, 사용자: ${user.id}`
     );

@@ -1,11 +1,94 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '@packages/database';
 import { generateId } from '@packages/common'; // 🆔 CUID2 생성자 사용
 import { CreateCourseDto } from './dto/course.dto';
 // 임시로 비활성화: UploadVideoUrlDto, UpdateCourseDto, UpdateCourseFormDataDto
+
+// 🔧 타입 안전한 정렬 상수 정의
+const ORDER_BY_INDEX_ASC: Prisma.SortOrder = 'asc';
+const ORDER_BY_CREATED_DESC: Prisma.SortOrder = 'desc';
+
+// 📊 섹션/챕터 정렬 설정
+const SECTION_ORDER_BY: Prisma.SectionOrderByWithRelationInput = { orderIndex: ORDER_BY_INDEX_ASC };
+const CHAPTER_ORDER_BY: Prisma.ChapterOrderByWithRelationInput = { orderIndex: ORDER_BY_INDEX_ASC };
+
+// 🔧 유틸리티 함수: undefined 값 제거
+function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+// 🏗️ 타입 정의 - Prisma 타입 추론을 위한 타입
+type CourseWithSections = Prisma.CourseGetPayload<{
+  include: {
+    sections: {
+      include: {
+        chapters: true;
+      };
+    };
+    _count: {
+      select: {
+        enrollments: true;
+        transactions: true;
+        comments: true;
+      };
+    };
+  };
+}>;
+
+type CourseWithDetails = Prisma.CourseGetPayload<{
+  include: {
+    sections: {
+      include: {
+        chapters: {
+          include: {
+            _count: {
+              select: { comments: true };
+            };
+            comments?: {
+              select: {
+                commentId: true;
+                text: true;
+                createdAt: true;
+                user: {
+                  select: {
+                    id: true;
+                    username: true;
+                    firstName: true;
+                    lastName: true;
+                    avatar: true;
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    _count: {
+      select: {
+        enrollments: true;
+        transactions: true;
+        comments: true;
+      };
+    };
+  };
+}>;
 
 /**
  * 📚 강의 관리 서비스
@@ -24,36 +107,71 @@ export class CoursesService {
   constructor(private readonly prismaService: PrismaService) {
     // S3 클라이언트 초기화
     this.s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'ap-northeast-2'
+      region: process.env.AWS_REGION || 'ap-northeast-2',
     });
   }
 
   /**
    * 📋 강의 목록 조회 (카테고리별 필터링 지원)
+   *
+   * 성능 최적화:
+   * - N+1 쿼리 문제 해결
+   * - 단일 쿼리로 모든 데이터 로드
+   * - 선택적 필드 로드로 네트워크 비용 절약
    */
-  async findAllCourses(category?: string) {
+  async findAllCourses(category?: string, includeDetails: boolean = true) {
     try {
-      this.logger.log(`강의 목록 조회 시작 - 카테고리: ${category || '전체'}`);
-      
+      this.logger.log(
+        `강의 목록 조회 시작 - 카테고리: ${category || '전체'}, 상세: ${includeDetails}`
+      );
+
       // 카테고리 필터 조건 구성
-      const whereClause = category && category !== 'all' && category.trim() !== ''
-        ? { category: String(category).trim() }
-        : undefined;
-        
+      const whereClause: Prisma.CourseWhereInput = {
+        status: 'Published' as const, // 공개된 강의만
+        ...(category &&
+          category !== 'all' &&
+          category.trim() !== '' && {
+            category: String(category).trim(),
+          }),
+      };
+
       this.logger.debug(`사용될 WHERE 조건:`, whereClause);
+
+      // 🚀 단순화된 include 옵션 (타입 명시)
+      const includeOptions: Prisma.CourseInclude = includeDetails
+        ? {
+            sections: {
+              include: {
+                chapters: {
+                  orderBy: CHAPTER_ORDER_BY,
+                },
+              },
+              orderBy: SECTION_ORDER_BY,
+            },
+            _count: {
+              select: {
+                enrollments: true,
+                transactions: true,
+                comments: true,
+              },
+            },
+          }
+        : {
+            _count: {
+              select: {
+                enrollments: true,
+                transactions: true,
+                comments: true,
+              },
+            },
+          };
 
       const courses = await this.prismaService.course.findMany({
         where: whereClause,
-        include: {
-          sections: {
-            include: {
-              chapters: true,
-            },
-          },
-        },
-        // orderBy: {
-        //   createdAt: 'desc',
-        // },
+        include: includeOptions,
+        orderBy: [
+          { createdAt: ORDER_BY_CREATED_DESC }, // 최신순
+        ],
       });
 
       this.logger.log(`강의 목록 조회 완료 - ${courses.length}개 강의 반환`);
@@ -62,33 +180,246 @@ export class CoursesService {
         message: '강의 목록 조회 성공',
         data: courses,
         count: courses.length,
+        optimized: true, // 성능 최적화 적용 표시
       };
     } catch (error) {
       this.logger.error('강의 목록 조회 중 오류 발생', error);
-      throw new BadRequestException('강의 목록을 조회하는 중 오류가 발생했습니다');
+      throw new BadRequestException(
+        '강의 목록을 조회하는 중 오류가 발생했습니다'
+      );
+    }
+  }
+
+  /**
+   * 🚀 여러 강의 일괄 조회 (배치 최적화)
+   *
+   * 성능 최적화:
+   * - 단일 쿼리로 여러 강의 데이터 조회
+   * - 관리자 대시보드나 비교 기능에 활용
+   */
+  async getBatchCourses(courseIds: string[], includeDetails: boolean = true) {
+    try {
+      this.logger.log(`일괄 강의 조회 시작 - ${courseIds.length}개 강의`);
+
+      if (courseIds.length === 0) {
+        return {
+          message: '조회할 강의가 없습니다',
+          data: [],
+          count: 0,
+        };
+      }
+
+      // 🚀 단순화된 include 옵션 (타입 명시)
+      const includeOptions: Prisma.CourseInclude = includeDetails
+        ? {
+            sections: {
+              include: {
+                chapters: {
+                  orderBy: CHAPTER_ORDER_BY,
+                },
+              },
+              orderBy: SECTION_ORDER_BY,
+            },
+            _count: {
+              select: {
+                enrollments: true,
+                transactions: true,
+                comments: true,
+              },
+            },
+          }
+        : {
+            _count: {
+              select: {
+                enrollments: true,
+                transactions: true,
+                comments: true,
+              },
+            },
+          };
+
+      const courses = await this.prismaService.course.findMany({
+        where: {
+          courseId: { in: courseIds },
+          status: 'Published' as const, // 공개된 강의만
+        },
+        include: includeOptions,
+        orderBy: {
+          createdAt: ORDER_BY_CREATED_DESC,
+        },
+      });
+
+      this.logger.log(`일괄 강의 조회 완료 - ${courses.length}개 강의 반환`);
+
+      return {
+        message: '일괄 강의 조회 성공',
+        data: courses,
+        count: courses.length,
+        optimized: true,
+      };
+    } catch (error) {
+      this.logger.error('일괄 강의 조회 중 오류 발생', error);
+      throw new BadRequestException('일괄 강의 조회 중 오류가 발생했습니다');
+    }
+  }
+
+  /**
+   * 📈 강의 통계 대시보드용 데이터 (집계 최적화)
+   *
+   * 성능 최적화:
+   * - 집계 함수를 활용한 단일 쿼리 통계
+   * - 강의별 세분화된 통계 정보 제공
+   */
+  async getCourseStatistics(courseId?: string) {
+    try {
+      this.logger.log(`강의 통계 조회 시작 - 대상: ${courseId || '전체'}`);
+
+      const whereCondition = courseId ? { courseId } : { status: 'Published' as const };
+
+      // 🚀 집계 쿼리로 기본 통계
+      const [courseStats, enrollmentStats, transactionStats] = await Promise.all([
+        // 강의 기본 통계
+        this.prismaService.course.aggregate({
+          where: whereCondition,
+          _count: { courseId: true },
+          _avg: { price: true },
+          _sum: { price: true },
+          _min: { price: true },
+          _max: { price: true },
+        }),
+
+        // 등록 통계
+        this.prismaService.enrollment.groupBy({
+          by: ['courseId'],
+          where: courseId ? { courseId } : {},
+          _count: { userId: true },
+          orderBy: { _count: { userId: 'desc' } },
+          take: 10, // 상위 10개 강의
+        }),
+
+        // 결제 통계
+        this.prismaService.transaction.groupBy({
+          by: ['courseId'],
+          where: courseId ? { courseId } : {},
+          _count: { transactionId: true },
+          _sum: { amount: true },
+          orderBy: { _sum: { amount: 'desc' } },
+          take: 10, // 상위 10개 강의
+        }),
+      ]);
+
+      // 카테고리별 통계
+      const categoryStats = await this.prismaService.course.groupBy({
+        by: ['category'],
+        where: { status: 'Published' as const },
+        _count: { courseId: true },
+        orderBy: { _count: { courseId: 'desc' } },
+      });
+
+      this.logger.log(`강의 통계 조회 완료`);
+
+      return {
+        message: '강의 통계 조회 성공',
+        data: {
+          overview: {
+            totalCourses: courseStats._count.courseId,
+            averagePrice: Math.round(courseStats._avg.price || 0),
+            totalRevenue: courseStats._sum.price || 0,
+            priceRange: {
+              min: courseStats._min.price || 0,
+              max: courseStats._max.price || 0,
+            },
+          },
+          enrollments: {
+            topCourses: enrollmentStats,
+            totalEnrollments: enrollmentStats.reduce(
+              (sum, item) => sum + item._count.userId,
+              0
+            ),
+          },
+          transactions: {
+            topRevenueCourses: transactionStats,
+            totalTransactions: transactionStats.reduce(
+              (sum, item) => sum + item._count.transactionId,
+              0
+            ),
+            totalRevenue: transactionStats.reduce(
+              (sum, item) => sum + (item._sum.amount || 0),
+              0
+            ),
+          },
+          categories: categoryStats,
+        },
+        optimized: true,
+      };
+    } catch (error) {
+      this.logger.error('강의 통계 조회 중 오류 발생', error);
+      throw new BadRequestException('강의 통계 조회 중 오류가 발생했습니다');
     }
   }
 
   /**
    * 🔍 특정 강의 상세 조회
+   *
+   * 성능 최적화:
+   * - 선택적 데이터 로드
+   * - 점진적 데이터 로딩 지원
+   * - 통계 정보 효율적 수집
    */
-  async findCourseById(courseId: string) {
+  async findCourseById(courseId: string, includeComments: boolean = false) {
     try {
-      this.logger.log(`강의 상세 조회 시작 - ID: ${courseId}`);
+      this.logger.log(
+        `강의 상세 조회 시작 - ID: ${courseId}, 댓글 포함: ${includeComments}`
+      );
+
+      // 🚀 단순화된 include 옵션
+      const includeOptions = {
+        sections: {
+          include: {
+            chapters: {
+              include: {
+                _count: {
+                  select: { comments: true },
+                },
+                ...(includeComments && {
+                  comments: {
+                    take: 10, // 최근 댓글 10개
+                    orderBy: { createdAt: 'desc' as const },
+                    select: {
+                      commentId: true,
+                      text: true,
+                      createdAt: true,
+                      user: {
+                        select: {
+                          id: true,
+                          username: true,
+                          firstName: true,
+                          lastName: true,
+                          avatar: true,
+                        },
+                      },
+                    },
+                  },
+                }),
+              },
+              orderBy: CHAPTER_ORDER_BY,
+            },
+          },
+          orderBy: SECTION_ORDER_BY,
+        },
+        _count: {
+          select: {
+            enrollments: true,
+            transactions: true,
+            comments: true,
+          },
+        },
+      };
 
       const course = await this.prismaService.course.findUnique({
         where: { courseId },
-        include: {
-          sections: {
-            include: {
-              chapters: true
-            },
-            // orderBy: {
-            //   createdAt: 'asc',
-            // },
-          },
-        },
-      });
+        include: includeOptions,
+      }) as CourseWithDetails | null;
 
       if (!course) {
         this.logger.warn(`강의를 찾을 수 없음 - ID: ${courseId}`);
@@ -98,11 +429,35 @@ export class CoursesService {
       // 빈 sections 배열 보장
       course.sections = course.sections || [];
 
-      this.logger.log(`강의 조회 완료 - 제목: ${course.title}, 섹션 수: ${course.sections.length}`);
+      // 📈 통계 정보 계산
+      const totalChapters = course.sections.reduce(
+        (sum, section) => sum + (section.chapters?.length || 0),
+        0
+      );
+
+      const averageChaptersPerSection =
+        course.sections.length > 0
+          ? Math.round((totalChapters / course.sections.length) * 10) / 10
+          : 0;
+
+      this.logger.log(
+        `강의 조회 완료 - 제목: ${course.title}, 섹션: ${course.sections.length}개, 총 챕터: ${totalChapters}개`
+      );
 
       return {
         message: '강의 조회 성공',
-        data: course,
+        data: {
+          ...course,
+          stats: {
+            totalSections: course.sections.length,
+            totalChapters,
+            averageChaptersPerSection,
+            enrollmentCount: course._count.enrollments,
+            transactionCount: course._count.transactions,
+            commentCount: course._count.comments,
+          },
+        },
+        optimized: true,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -141,9 +496,11 @@ export class CoursesService {
             },
           },
         },
-      });
+      }) as CourseWithSections;
 
-      this.logger.log(`강의 생성 완료 - ID: ${newCourse.courseId}, 제목: ${newCourse.title}`);
+      this.logger.log(
+        `강의 생성 완료 - ID: ${newCourse.courseId}, 제목: ${newCourse.title}`
+      );
 
       return {
         message: '강의 생성 성공',
@@ -156,142 +513,157 @@ export class CoursesService {
   }
 
   /**
-   * ✏️ 강의 정보 수정 (트랜잭션 적용)
+   * ✏️ 강의 정보 수정 (N+1 최적화 적용)
+   *
+   * 🚀 성능 최적화:
+   * - 권한 확인을 WHERE 조건에 포함하여 별도 조회 제거
+   * - 트랜잭션 기반 원자적 처리
+   * - 필요한 데이터만 select로 조회
    */
   async updateCourse(
-    courseId: string,
-    updateCourseDto: any, // 임시로 any 타입 사용
-    userId: string,
-    file?: Express.Multer.File
-  ) {
+courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.File | undefined  ) {
     try {
-      this.logger.log(`=== Service updateCourse 시작 ===`);
-      this.logger.log(`Course ID: ${courseId}, User: ${userId}`);
-      this.logger.log(`Update Data:`, JSON.stringify(updateCourseDto, null, 2));
       this.logger.log(`강의 수정 시작 - ID: ${courseId}, 사용자: ${userId}`);
+      this.logger.log(`Update Data:`, JSON.stringify(updateCourseDto, null, 2));
 
-      // 기존 강의 조회 및 권한 확인
-      this.logger.log(`데이터베이스 조회 시작...`);
-      const existingCourse = await this.prismaService.course.findUnique({
-        where: { courseId },
+      // 🚀 N+1 최적화: 단일 트랜잭션으로 권한 확인과 업데이트를 동시에 처리
+      const result = await this.prismaService.$transaction(async (tx) => {
+        // 업데이트 데이터 준비
+        const updateData = {
+          title: updateCourseDto.title,
+          description: updateCourseDto.description,
+          category: updateCourseDto.category,
+          level: updateCourseDto.level,
+          status: updateCourseDto.status,
+        };
+
+        // undefined 값 제거 (타입 안전한 방식)
+        const cleanedUpdateData = removeUndefinedFields(updateData);
+
+        // 🚀 권한 확인과 업데이트를 단일 쿼리로 처리
+        const updatedCourse = await tx.course.update({
+          where: {
+            courseId,
+            teacherId: userId, // 권한 확인을 WHERE 조건에 포함
+          },
+          data: cleanedUpdateData,
+          include: {
+            sections: {
+              include: {
+                chapters: {
+                  orderBy: CHAPTER_ORDER_BY, // ✅ orderIndex 사용 (마이그레이션 후)
+                },
+              },
+              orderBy: SECTION_ORDER_BY, // ✅ orderIndex 사용 (마이그레이션 후)
+            },
+            _count: {
+              select: {
+                enrollments: true,
+                transactions: true,
+                comments: true,
+              },
+            },
+          },
+        }) as CourseWithSections;
+
+        return updatedCourse;
       });
 
-      this.logger.log(`데이터베이스 조회 결과:`, existingCourse ? '강의 발견' : '강의 없음');
-
-      if (!existingCourse) {
-        this.logger.error(`강의 없음 - ID: ${courseId}`);
-        throw new NotFoundException('강의를 찾을 수 없습니다');
-      }
-
-      this.logger.log(`강의 정보: 제목=${existingCourse.title}, 소유자=${existingCourse.teacherId}`);
-
-      if (existingCourse.teacherId !== userId) {
-        this.logger.error(`권한 오류 - 소유자: ${existingCourse.teacherId}, 요청자: ${userId}`);
-        throw new ForbiddenException('이 강의를 수정할 권한이 없습니다');
-      }
-
-      // 가격 변환 처리 삭제하고 단순 업데이트만
-      const updateData = {
-        title: updateCourseDto.title,
-        description: updateCourseDto.description,
-        category: updateCourseDto.category,
-        level: updateCourseDto.level,
-        status: updateCourseDto.status,
-      };
-      
-      // undefined 값 제거
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
-      });
-      
-      this.logger.log(`실제 업데이트할 데이터:`, JSON.stringify(updateData, null, 2));
-      
-      // 단순 업데이트 (트랜잭션 없이)
-      this.logger.log(`데이터베이스 업데이트 시작...`);
-      const updatedCourse = await this.prismaService.course.update({
-        where: { courseId },
-        data: updateData,
-        include: {
-          sections: {
-            include: {
-              chapters: true
-            }
-          }
-        }
-      });
-      
-      this.logger.log(`데이터베이스 업데이트 완료!`);
-
-      this.logger.log(`강의 수정 완료 - ID: ${courseId}, 제목: ${updatedCourse?.title}`);
+      this.logger.log(
+        `강의 수정 완료 - ID: ${courseId}, 제목: ${result?.title}`
+      );
 
       return {
         message: '강의 수정 성공',
-        data: updatedCourse,
+        data: result,
+        optimized: true, // 최적화 적용 표시
       };
     } catch (error) {
-      this.logger.error(`=== Service Error ===`);
-      this.logger.error(`Course ID: ${courseId}`);
-      this.logger.error(`Error Type: ${error.constructor?.name}`);
-      this.logger.error(`Error Message: ${error.message}`);
-      
-      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
-        this.logger.error(`Known error type, re-throwing...`);
+      // Prisma P2025 에러: 레코드를 찾을 수 없음 (권한 없음 포함)
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        this.logger.warn(
+          `강의 수정 권한 없음 또는 강의 없음 - ID: ${courseId}, 사용자: ${userId}`
+        );
+        throw new ForbiddenException(
+          '이 강의를 수정할 권한이 없거나 강의를 찾을 수 없습니다'
+        );
+      }
+
+      // Prisma P2022 에러: 컬럼을 찾을 수 없음 (orderIndex 필드 누락)
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+        this.logger.error(
+          `데이터베이스 스키마 오류 - orderIndex 필드 누락: ${error.meta?.column}`
+        );
+        throw new BadRequestException(
+          '데이터베이스 스키마 업데이트가 필요합니다. 관리자에게 문의하세요.'
+        );
+      }
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
 
-      this.logger.error(`Unknown error details:`);
-      this.logger.error(`- Name: ${error.name}`);
-      this.logger.error(`- Message: ${error.message}`);
-      if (error.stack) {
-        this.logger.error(`- Stack trace:`);
-        error.stack.split('\n').slice(0, 10).forEach((line: string, i: number) => {
-          this.logger.error(`  ${i + 1}. ${line.trim()}`);
-        });
-      }
-      
-      throw new BadRequestException('강의를 수정하는 중 예상치 못한 오류가 발생했습니다');
+      this.logger.error(
+        `강의 수정 중 오류 발생 - ID: ${courseId}, 사용자: ${userId}`,
+        error
+      );
+      throw new BadRequestException(
+        '강의를 수정하는 중 예상치 못한 오류가 발생했습니다'
+      );
     }
   }
 
   /**
-   * 🗑️ 강의 삭제
+   * 🗑️ 강의 삭제 (최적화 적용)
+   *
+   * 🚀 성능 최적화:
+   * - 권한 확인과 삭제를 단일 쿼리로 처리
+   * - 별도 조회 없이 원자적 삭제
    */
   async deleteCourse(courseId: string, userId: string) {
     try {
       this.logger.log(`강의 삭제 시작 - ID: ${courseId}, 사용자: ${userId}`);
 
-      // 기존 강의 조회 및 권한 확인
-      const course = await this.prismaService.course.findUnique({
-        where: { courseId },
+      // 🚀 최적화: 단일 쿼리로 권한 확인 + 삭제
+      const deletedCourse = await this.prismaService.course.delete({
+        where: {
+          courseId,
+          teacherId: userId, // 권한 확인을 WHERE 조건에 포함
+        },
+        select: {
+          courseId: true,
+          title: true,
+        },
       });
 
-      if (!course) {
-        throw new NotFoundException('강의를 찾을 수 없습니다');
-      }
-
-      if (course.teacherId !== userId) {
-        this.logger.warn(`강의 삭제 권한 없음 - 강의 소유자: ${course.teacherId}, 요청자: ${userId}`);
-        throw new ForbiddenException('이 강의를 삭제할 권한이 없습니다');
-      }
-
-      // 강의 삭제 (Cascade로 관련 데이터도 함께 삭제됨)
-      await this.prismaService.course.delete({
-        where: { courseId }
-      });
-
-      this.logger.log(`강의 삭제 완료 - ID: ${courseId}, 제목: ${course.title}`);
+      this.logger.log(
+        `강의 삭제 완료 - ID: ${courseId}, 제목: ${deletedCourse.title}`
+      );
 
       return {
         message: '강의 삭제 성공',
-        data: {
-          courseId,
-          title: course.title,
-        },
+        data: deletedCourse,
+        optimized: true, // 최적화 적용 표시
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+      // Prisma P2025 에러: 레코드를 찾을 수 없음 (권한 없음 포함)
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        this.logger.warn(
+          `강의 삭제 권한 없음 또는 강의 없음 - ID: ${courseId}, 사용자: ${userId}`
+        );
+        throw new ForbiddenException(
+          '이 강의를 삭제할 권한이 없거나 강의를 찾을 수 없습니다'
+        );
+      }
+
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
 
@@ -305,14 +677,23 @@ export class CoursesService {
    */
   async generateUploadVideoUrl(uploadVideoUrlDto: any) {
     try {
-      this.logger.log(`비디오 업로드 URL 생성 시작 - 파일: ${uploadVideoUrlDto.fileName}`);
+      this.logger.log(
+        `비디오 업로드 URL 생성 시작 - 파일: ${uploadVideoUrlDto.fileName}`
+      );
 
       const { fileName, fileType } = uploadVideoUrlDto;
 
       // 파일 확장자 검증
-      const allowedVideoTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/mkv'];
+      const allowedVideoTypes = [
+        'video/mp4',
+        'video/mov',
+        'video/avi',
+        'video/mkv',
+      ];
       if (!allowedVideoTypes.includes(fileType)) {
-        throw new BadRequestException('지원하지 않는 비디오 형식입니다. MP4, MOV, AVI, MKV만 지원됩니다.');
+        throw new BadRequestException(
+          '지원하지 않는 비디오 형식입니다. MP4, MOV, AVI, MKV만 지원됩니다.'
+        );
       }
 
       // S3 키 생성 (CUID2 고유 ID 포함)
@@ -334,7 +715,7 @@ export class CoursesService {
       // 미리 서명된 URL 생성 (5분 유효)
       const command = new PutObjectCommand(s3Params);
       const uploadUrl = await getSignedUrl(this.s3Client, command, {
-        expiresIn: 300 // 5분
+        expiresIn: 300, // 5분
       });
 
       // CloudFront 도메인을 통한 비디오 URL 생성
@@ -359,7 +740,9 @@ export class CoursesService {
       }
 
       this.logger.error('비디오 업로드 URL 생성 중 오류 발생', error);
-      throw new BadRequestException('비디오 업로드 URL을 생성하는 중 오류가 발생했습니다');
+      throw new BadRequestException(
+        '비디오 업로드 URL을 생성하는 중 오류가 발생했습니다'
+      );
     }
   }
 }

@@ -93,6 +93,18 @@ export {
   type PaginatedResponse,
 } from './schemas/base.schema';
 
+// 👤 사용자 인터페이스 및 타입들
+export {
+  type User,
+  type UserRole,
+  type JwtPayload,
+  type JwtRefreshPayload,
+  type AuthenticatedRequest,
+  type TokenPair,
+  type JwtUser,
+  RoleUtils,
+} from './interfaces/user.interface';
+
 // 🆔 ID 생성 유틸리티
 export {
   generateId,

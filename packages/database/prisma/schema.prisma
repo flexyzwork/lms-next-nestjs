@@ -286,6 +286,7 @@ model Section {
   course           Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
   sectionTitle     String
   sectionDescription String?
+  orderIndex       Int       @default(0) // 섹션 순서 정렬용 인덱스
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -293,6 +294,7 @@ model Section {
 
   // 🚀 성능 최적화 인덱스
   @@index([courseId])               // 강의별 섹션 조회
+  @@index([courseId, orderIndex])   // 강의별 섹션 순서 정렬
   @@index([createdAt])              // 생성순 정렬
   // TODO: PostgreSQL 전체 텍스트 검색은 따로 구현 예정
   @@map("sections")
@@ -305,6 +307,7 @@ model Chapter {
   type       ChapterType
   title      String
   content    String
+  orderIndex Int         @default(0) // 챕터 순서 정렬용 인덱스
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -313,6 +316,7 @@ model Chapter {
 
   // 🚀 성능 최적화 인덱스
   @@index([sectionId])              // 섹션별 챕터 조회
+  @@index([sectionId, orderIndex])  // 섹션별 챕터 순서 정렬
   @@index([type])                   // 챕터 타입별 필터링
   @@index([createdAt])              // 생성순 정렬
   // TODO: PostgreSQL 전체 텍스트 검색은 따로 구현 예정

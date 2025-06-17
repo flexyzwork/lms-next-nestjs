@@ -41,11 +41,16 @@ export class TransactionsService {
     try {
       this.logger.log(`트랜잭션 목록 조회 시작 - 요청자: ${user.id}, 대상: ${query.userId || '전체'}`);
 
-      // 일반 사용자는 자신의 트랜잭션만 조회 가능
-      // 관리자는 특정 사용자나 전체 트랜잭션 조회 가능
+      // 권한 검증: 일반 사용자는 자신의 트랜잭션만 조회 가능
       const isAdmin = user.role === 'admin' || user.role === 'teacher';
+      
+      // 일반 사용자가 다른 사용자의 트랜잭션을 조회하려 하는 경우
+      if (!isAdmin && query.userId && query.userId !== user.id) {
+        this.logger.warn(`권한 없음 - 요청자: ${user.id}, 대상: ${query.userId}`);
+        throw new ForbiddenException('본인의 트랜잭션만 조회할 수 있습니다');
+      }
+      
       const targetUserId = isAdmin ? query.userId : user.id;
-
       const whereClause = targetUserId ? { userId: targetUserId } : {};
       
       // 페이지네이션 계산
@@ -156,8 +161,13 @@ export class TransactionsService {
   }
 
   /**
-   * 📝 새 트랜잭션 생성 (결제 완료 후)
+   * 📝 새 트랜잭션 생성 (결제 완료 후, N+1 최적화 적용)
    * 원자적 처리로 트랜잭션, 등록, 학습 진도 초기화를 모두 처리
+   * 
+   * 🚀 성능 최적화:
+   * - 필요한 데이터만 select로 조회
+   * - findUniqueOrThrow로 에러 처리 간소화
+   * - 트랜잭션 내에서 모든 작업 원자적 수행
    */
   async createTransaction(createTransactionDto: any) {
     try {
@@ -165,43 +175,53 @@ export class TransactionsService {
 
       const { userId, courseId, transactionId, amount, paymentProvider } = createTransactionDto;
 
-      // 강의 존재 확인
-      const course = await this.prismaService.course.findUnique({
-        where: { courseId },
-        include: {
-          sections: {
-            include: {
-              chapters: true
-            },
-            // orderBy: {
-            //   createdAt: 'asc',
-            // },
-          }
-        },
-      });
-
-      if (!course) {
-        this.logger.warn(`강의를 찾을 수 없음 - ID: ${courseId}`);
-        throw new NotFoundException('강의를 찾을 수 없습니다');
-      }
-
-      // 이미 등록된 사용자인지 확인
-      const existingEnrollment = await this.prismaService.enrollment.findUnique({
-        where: {
-          userId_courseId: {
-            userId,
-            courseId,
-          },
-        },
-      });
-
-      if (existingEnrollment) {
-        this.logger.warn(`이미 등록된 강의 - 사용자: ${userId}, 강의: ${courseId}`);
-        throw new BadRequestException('이미 등록된 강의입니다');
-      }
-
-      // 트랜잭션을 사용한 원자적 처리
+      // 🚀 N+1 최적화: 트랜잭션으로 원자적 처리
       const result = await this.prismaService.$transaction(async (tx) => {
+        // 🚀 필요한 데이터만 선택적 조회
+        const course = await tx.course.findUniqueOrThrow({
+          where: { courseId },
+          select: {
+            courseId: true,
+            title: true,
+            teacherName: true,
+            category: true,
+            price: true,
+            sections: {
+              select: {
+                sectionId: true,
+                sectionTitle: true,
+                chapters: {
+                  select: {
+                    chapterId: true,
+                    title: true,
+                  },
+                  orderBy: {
+                    createdAt: 'asc',
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+            },
+          },
+        });
+
+        // 이미 등록된 사용자인지 확인
+        const existingEnrollment = await tx.enrollment.findUnique({
+          where: {
+            userId_courseId: {
+              userId,
+              courseId,
+            },
+          },
+        });
+
+        if (existingEnrollment) {
+          this.logger.warn(`이미 등록된 강의 - 사용자: ${userId}, 강의: ${courseId}`);
+          throw new BadRequestException('이미 등록된 강의입니다');
+        }
+
         // 1️⃣ 트랜잭션 기록 생성
         const newTransaction = await tx.transaction.create({
           data: {
@@ -212,15 +232,13 @@ export class TransactionsService {
             paymentProvider,
             dateTime: new Date(),
           },
-          include: {
-            course: {
-              select: {
-                courseId: true,
-                title: true,
-                teacherName: true,
-                category: true,
-              },
-            },
+          select: {
+            transactionId: true,
+            userId: true,
+            courseId: true,
+            amount: true,
+            paymentProvider: true,
+            dateTime: true,
           },
         });
 
@@ -233,12 +251,16 @@ export class TransactionsService {
           },
         });
 
-        // 3️⃣ 학습 진도 초기화
+        // 3️⃣ 학습 진도 초기화 (최적화된 데이터 구조)
         const sectionsProgress = course.sections.map((section) => ({
           sectionId: section.sectionId,
+          sectionTitle: section.sectionTitle,
+          completed: false,
           chapters: section.chapters.map((chapter) => ({
             chapterId: chapter.chapterId,
+            title: chapter.title,
             completed: false,
+            watchedDuration: 0,
           })),
         }));
 
@@ -253,27 +275,49 @@ export class TransactionsService {
           },
         });
 
+        // 📊 완전한 결과 데이터 구성
         return {
-          transaction: newTransaction,
+          transaction: {
+            ...newTransaction,
+            course: {
+              courseId: course.courseId,
+              title: course.title,
+              teacherName: course.teacherName,
+              category: course.category,
+            },
+          },
           enrollment: newEnrollment,
-          progress: newProgress,
+          progress: {
+            ...newProgress,
+            sections: sectionsProgress, // 파싱된 데이터
+          },
           courseInfo: {
             title: course.title,
             sectionsCount: course.sections.length,
-            chaptersCount: course.sections.reduce((acc, section) => acc + section.chapters.length, 0),
+            chaptersCount: course.sections.reduce(
+              (acc, section) => acc + section.chapters.length,
+              0
+            ),
           },
         };
       });
 
-      this.logger.log(`트랜잭션 생성 완료 - ID: ${transactionId}, 강의: ${course.title}`);
+      this.logger.log(`트랜잭션 생성 완료 - ID: ${transactionId}, 강의: ${result.courseInfo.title}`);
 
       return {
         message: '강의 구매 및 등록 성공',
         data: result,
+        optimized: true, // 최적화 적용 표시
       };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
+      }
+
+      // Prisma P2025 에러: 강의를 찾을 수 없음
+      if (error.code === 'P2025') {
+        this.logger.warn(`강의를 찾을 수 없음 - ID: ${createTransactionDto.courseId}`);
+        throw new NotFoundException('강의를 찾을 수 없습니다');
       }
 
       this.logger.error('트랜잭션 생성 중 오류 발생', error);
