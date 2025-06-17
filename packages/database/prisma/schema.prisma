@@ -99,6 +99,12 @@ model User {
   enrollments      Enrollment[]
   comments         Comment[]
 
+  // 🚀 성능 최적화 인덱스
+  @@index([role])                    // 역할별 사용자 조회
+  @@index([isActive])               // 활성 사용자 필터링
+  @@index([createdAt])              // 가입일순 정렬
+  @@index([lastLoginAt])            // 최근 로그인 사용자
+  @@index([role, isActive])         // 복합 인덱스: 활성 강사/학생
   @@map("users")
 }
 
@@ -183,6 +189,13 @@ model LoginHistory {
 
   createdAt DateTime @default(now())
 
+  // 🚀 성능 최적화 인덱스
+  @@index([email])                  // 이메일별 로그인 시도 조회
+  @@index([userId])                 // 사용자별 로그인 히스토리
+  @@index([success])                // 성공/실패 로그인 필터링
+  @@index([createdAt])              // 시간순 정렬
+  @@index([ipAddress])              // IP별 로그인 시도 추적
+  @@index([email, success, createdAt]) // 복합 인덱스: 보안 분석용
   @@map("login_history")
 }
 
@@ -200,6 +213,13 @@ model Transaction {
   // 🔥 관계 설정 (강의와 연결)
   course  Course  @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 🚀 성능 최적화 인덱스
+  @@index([userId])                 // 사용자별 결제 내역
+  @@index([courseId])               // 강의별 결제 내역
+  @@index([dateTime])               // 시간순 정렬
+  @@index([paymentProvider])        // 결제 수단별 조회
+  @@index([userId, dateTime])       // 복합: 사용자 결제 내역 시간순
   @@map("transactions")
 }
 
@@ -216,6 +236,12 @@ model UserCourseProgress {
   course Course @relation(fields: [courseId], references: [courseId], onDelete: Cascade)
 
   @@id([userId, courseId])
+  // 🚀 성능 최적화 인덱스
+  @@index([userId])                        // 사용자별 수강 진도
+  @@index([courseId])                      // 강의별 수강생 진도
+  @@index([overallProgress])               // 진도율별 정렬
+  @@index([lastAccessedTimestamp])         // 최근 접속순 정렬
+  @@index([userId, lastAccessedTimestamp]) // 복합: 사용자 최근 학습 내역
   @@map("user_course_progress")
 }
 
@@ -241,6 +267,16 @@ model Course {
   enrollments    Enrollment[]
   comments       Comment[]
 
+  // 🚀 성능 최적화 인덱스
+  @@index([teacherId])              // 강사별 강의 조회
+  @@index([category])               // 카테고리별 검색
+  @@index([status])                 // 게시 상태별 필터링
+  @@index([level])                  // 난이도별 필터링
+  @@index([createdAt])              // 생성일순 정렬
+  @@index([price])                  // 가격대별 검색
+  @@index([status, category])       // 복합: 공개 강의 카테고리 검색
+  @@index([teacherId, status])      // 복합: 강사의 공개 강의
+  // TODO: PostgreSQL 전체 텍스트 검색은 따로 구현 예정
   @@map("courses")
 }
 
@@ -255,6 +291,10 @@ model Section {
 
   chapters        Chapter[]
 
+  // 🚀 성능 최적화 인덱스
+  @@index([courseId])               // 강의별 섹션 조회
+  @@index([createdAt])              // 생성순 정렬
+  // TODO: PostgreSQL 전체 텍스트 검색은 따로 구현 예정
   @@map("sections")
 }
 
@@ -271,6 +311,11 @@ model Chapter {
   comments   Comment[]
   video      String?
 
+  // 🚀 성능 최적화 인덱스
+  @@index([sectionId])              // 섹션별 챕터 조회
+  @@index([type])                   // 챕터 타입별 필터링
+  @@index([createdAt])              // 생성순 정렬
+  // TODO: PostgreSQL 전체 텍스트 검색은 따로 구현 예정
   @@map("chapters")
 }
 
@@ -287,6 +332,11 @@ model Comment {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   chapter Chapter @relation(fields: [chapterId], references: [chapterId], onDelete: Cascade)
 
+  // 🚀 성능 최적화 인덱스
+  @@index([chapterId])              // 챕터별 댑글 조회
+  @@index([userId])                 // 사용자별 댑글 내역
+  @@index([createdAt])              // 시간순 정렬
+  @@index([chapterId, createdAt])   // 복합: 챕터 댑글 시간순
   @@map("comments")
   Course Course[]
 }
