@@ -48,15 +48,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     try {
       const startTime = Date.now();
       
+      // 개발환경에서 디버깅 로그
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.debug(`JWT 검증 시작 - 사용자 ID: ${payload.sub}`);
+        this.logger.debug(`페이로드: ${JSON.stringify(payload)}`);
+      }
+      
       // 토큰 블랙리스트 확인
       const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
       if (token && await this.redisService.isBlacklisted(token)) {
         this.logger.warn(`블랙리스트된 토큰 사용 시도 - 사용자: ${payload.sub}`);
-        throw new UnauthorizedException({
-          code: 'BLACKLISTED_TOKEN',
-          message: '토큰이 무효화되었습니다',
-          action: 'LOGIN_REQUIRED'
-        });
+        throw new UnauthorizedException('토큰이 무효화되었습니다');
       }
 
       // 사용자 조회 (성능 최적화를 위해 필요한 필드만 선택)
@@ -65,6 +67,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           id: true,
           email: true,
           username: true,
+          name: true,
           role: true,
           isVerified: true,
           isActive: true,
@@ -74,30 +77,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
       if (!user) {
         this.logger.warn(`사용자를 찾을 수 없음 - ID: ${payload.sub}`);
-        throw new UnauthorizedException({
-          code: 'USER_NOT_FOUND',
-          message: '사용자를 찾을 수 없습니다',
-          action: 'LOGIN_REQUIRED'
-        });
+        throw new UnauthorizedException('사용자를 찾을 수 없습니다');
       }
 
       if (!user.isActive) {
         this.logger.warn(`비활성화된 계정 접근 시도 - 사용자: ${user.email}`);
-        throw new UnauthorizedException({
-          code: 'ACCOUNT_DISABLED',
-          message: '비활성화된 계정입니다',
-          action: 'CONTACT_SUPPORT'
-        });
+        throw new UnauthorizedException('비활성화된 계정입니다');
       }
 
       const validationTime = Date.now() - startTime;
-      this.logger.debug(`인증 성공 - 사용자: ${user.email}, 소요시간: ${validationTime}ms`);
+      
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.debug(`인증 성공 - 사용자: ${user.email}, 소요시간: ${validationTime}ms`);
+      }
 
       // 인증된 사용자 정보 반환 (request.user에 설정됨)
       const jwtUser: JwtUser = {
-        id: user.id, // 통일된 ID 필드 사용
+        userId: user.id, // Guard에서 사용하는 필드명 통일
+        id: user.id,
         email: user.email,
         username: user.username,
+        name: user.name,
         role: user.role,
         isVerified: user.isVerified,
         isActive: user.isActive,
@@ -112,11 +112,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       const errorMessage = error instanceof Error ? error.message : '토큰 검증에 실패했습니다';
       this.logger.error(`JWT 검증 실패 - 사용자: ${payload?.sub || '알수없음'}:`, error);
       
-      throw new UnauthorizedException({
-        code: 'TOKEN_VALIDATION_FAILED',
-        message: errorMessage,
-        action: 'LOGIN_REQUIRED'
-      });
+      throw new UnauthorizedException(errorMessage);
     }
   }
 }

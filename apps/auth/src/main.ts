@@ -65,12 +65,34 @@ async function bootstrap() {
     // ⚠️ 전역 예외 필터 적용 (Zod 에러 처리 포함)
     app.useGlobalFilters(new AllExceptionsFilter());
 
+    // 📋 요청 로깅 미들웨어 추가
+    app.use((req: any, res: any, next: any) => {
+      const start = Date.now();
+      const { method, originalUrl } = req;
+      
+      logger.debug(`→ ${method} ${originalUrl}`);
+      
+      res.on('finish', () => {
+        const duration = Date.now() - start;
+        const { statusCode } = res;
+        logger.debug(`← ${method} ${originalUrl} ${statusCode} (+${duration}ms)`);
+      });
+      
+      next();
+    });
+
     // 🔗 API 접두사 설정
     app.setGlobalPrefix('api/v1');
 
     // 📝 Swagger API 문서 설정
     const port = configService.get<number>('PORT') || 4000;
-    setupAuthSwagger(app, port);
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        setupAuthSwagger(app, port);
+      } catch (error) {
+        logger.warn('Swagger 설정을 건너뜁니다:', error.message);
+      }
+    }
 
     // 🚀 서버 시작
     await app.listen(port);
@@ -80,12 +102,14 @@ async function bootstrap() {
     
     logger.log('🚀 인증 서비스가 성공적으로 시작되었습니다!');
     logger.log(`📍 서버 포트: ${port}`);
-    logger.log(`📝 API 문서: http://localhost:${port}/api/v1`);
+    logger.log(`📝 API 문서: http://localhost:${port}/api-docs`);
+    logger.log(`🔗 API 기본 경로: http://localhost:${port}/api/v1`);
     logger.log(`🔧 환경: ${process.env.NODE_ENV || 'development'}`);
     logger.log(`🛡️ 보안 설정:`);
     logger.log(`   - 최대 로그인 시도: ${securityConfig?.maxLoginAttempts || 5}회`);
     logger.log(`✅ Zod 검증 시스템이 활성화되었습니다`);
-    logger.log(`🔍 헬스체크: http://localhost:${port}/health (구현 예정)`);
+    logger.log(`🔍 헬스체크: http://localhost:${port}/api/v1/auth/health`);
+    logger.log(`💡 인증 테스트: 스웨거에서 /auth/login 후 Authorize 버튼 클릭`);
 
   } catch (error) {
     logger.error('❌ 인증 서비스 시작 실패:', error);
