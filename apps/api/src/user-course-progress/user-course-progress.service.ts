@@ -5,6 +5,7 @@ import { PrismaService } from '@packages/database';
 // 임시로 비활성화
 
 import { User } from '@packages/common';
+import { Cacheable, CacheEvict } from '@packages/common';
 
 /**
  * 📈 사용자 강의 진도 관리 서비스
@@ -179,13 +180,19 @@ export class UserCourseProgressService {
   }
 
   /**
-   * 📝 강의 학습 진도 업데이트 (N+1 최적화 적용)
+   * 📝 강의 학습 진도 업데이트 (N+1 최적화 + 캐시 무효화 적용)
    * 
    * 🚀 성능 최적화:
    * - 트랜잭션 내에서 조회와 업데이트를 순차적 수행
    * - 업데이트 후 강의 정보를 타 쿼리로 조회하지 않고 첨부
    * - 데이터 정합성 보장
+   * - 관련 캐시 자동 무효화
    */
+  @CacheEvict([
+    'user-enrolled-courses:{userId}',
+    'user-course-progress:{userId}:{courseId}',
+    'course-progress-statistics:{courseId}'
+  ])
   async updateUserCourseProgress(
     targetUserId: string,
     courseId: string,
@@ -289,12 +296,14 @@ export class UserCourseProgressService {
   }
 
   /**
-   * 🔍 다중 사용자의 강의 진도 일괄 조회 (Batch 최적화)
+   * 🔍 다중 사용자의 강의 진도 일괄 조회 (Batch 최적화 + 캐싱)
    * 
    * 🚀 성능 최적화:
    * - 여러 사용자의 진도를 단일 쿼리로 조회
    * - 관리자 대시보드나 보고서 생성 시 사용
+   * - Redis 캐싱 (3분)
    */
+  @Cacheable('batch-user-progress:{userIds}:{courseId}', 180)
   async getBatchUserCourseProgress(
     userIds: string[],
     courseId?: string,
@@ -374,12 +383,14 @@ export class UserCourseProgressService {
   }
 
   /**
-   * 📈 강의별 전체 진도 통계 조회 (N+1 최적화)
+   * 📈 강의별 전체 진도 통계 조회 (N+1 최적화 + 캐싱)
    * 
    * 🚀 성능 최적화:
    * - 집계 함수를 활용한 단일 쿼리 통계
    * - 강의별 진도 분석 대시보드용
+   * - Redis 캐싱 (10분)
    */
+  @Cacheable('course-progress-statistics:{courseId}', 600)
   async getCourseProgressStatistics(courseId: string, requestUser: User) {
     try {
       this.logger.log(`강의 진도 통계 조회 시작 - 강의: ${courseId}`);

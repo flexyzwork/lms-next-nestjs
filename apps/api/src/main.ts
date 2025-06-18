@@ -67,13 +67,14 @@ async function bootstrap() {
       title: 'LMS API 문서',
       description: 'LMS 시스템의 API 문서입니다.',
       version: '1.0',
-      path: 'api/v1',
+      path: 'api-docs',
     });
 
     await app.listen(port);
 
     logger.log(`🚀 API 서버가 포트 ${port}에서 실행 중입니다`);
-    logger.log(`📝 API 문서: http://localhost:${port}/api/v1`);
+    logger.log(`📝 API 문서: http://localhost:${port}/api-docs`);
+    logger.log(`🔗 API 엔드포인트: http://localhost:${port}/api/v1`);
     logger.log(`🔧 환경: ${process.env.NODE_ENV || 'development'}`);
     logger.log(`✅ Zod 검증 시스템이 적용되었습니다`);
   } catch (error) {

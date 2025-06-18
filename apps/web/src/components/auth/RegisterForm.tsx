@@ -107,38 +107,20 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-            이름 (선택)
-          </label>
-          <input
-            id="firstName"
-            type="text"
-            {...register('firstName')}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="이름"
-          />
-          {errors.firstName && (
-            <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-            성 (선택)
-          </label>
-          <input
-            id="lastName"
-            type="text"
-            {...register('lastName')}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="성"
-          />
-          {errors.lastName && (
-            <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
-          )}
-        </div>
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          이름 (선택)
+        </label>
+        <input
+          id="name"
+          type="text"
+          {...register('name')}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="이름을 입력하세요"
+        />
+        {errors.name && (
+          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+        )}
       </div>
 
       <button

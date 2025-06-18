@@ -7,10 +7,16 @@ export { CurrentUser } from './decorators/current-user.decorator';
 export { Public, IS_PUBLIC_KEY } from './decorators/public.decorator';
 export { ZodBody } from './decorators/zod-body.decorator';
 
+// 🚀 성능 최적화 데코레이터
+export { Cacheable, CacheEvict, CachePut } from './decorators/cache.decorator';
+
 // 🔌 NestJS 서버 전용 (기본적인 것들만)
 export { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export { LoggingInterceptor } from './interceptors/logging.interceptor';
 export { ZodValidationPipe } from './pipes/zod-validation.pipe';
+
+// 🚀 성능 최적화 인터셉터
+export { CacheInterceptor, CacheEvictInterceptor } from './interceptors/cache.interceptor';
 
 // 🛡️ 보안 미들웨어 (서버 환경에서만 사용 가능)
 // export {

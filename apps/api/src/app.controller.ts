@@ -1,5 +1,6 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AppService } from './app.service';
 import { Public } from '@packages/common';
 
@@ -39,5 +40,18 @@ export class AppController {
   getHealth() {
     this.logger.log('헬스체크 요청');
     return this.appService.getHealthCheck();
+  }
+
+  /**
+   * 🎨 Favicon 처리
+   */
+  @Public()
+  @Get('favicon.ico')
+  @ApiOperation({ summary: 'Favicon', description: 'Favicon 파일을 반환합니다.' })
+  @ApiResponse({ status: 204, description: 'Favicon 없음' })
+  getFavicon(@Res() res: Response) {
+    this.logger.log('Favicon 요청');
+    // 204 No Content 응답으로 favicon 요청 처리
+    res.status(204).end();
   }
 }

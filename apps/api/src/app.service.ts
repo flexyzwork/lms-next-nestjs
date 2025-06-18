@@ -34,7 +34,7 @@ export class AppService {
         transactions: '/api/v1/transactions',
         userProgress: '/api/v1/users/course-progress',
         health: '/api/v1/health',
-        docs: '/api/v1',
+        docs: '/api-docs',
       },
     };
 
