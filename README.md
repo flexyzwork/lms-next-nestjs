@@ -38,8 +38,7 @@ lms-next-nestjs/
 │   ├── common/        # 공통 미들웨어, 유틸리티
 │   ├── config/        # 환경변수 기반 동적 설정
 │   ├── database/      # Prisma 데이터베이스 설정
-│   ├── schemas/       # Zod 스키마 검증
-│   └── ui-components/ # 재사용 가능한 UI 컴포넌트
+│   └── schemas/       # Zod 스키마 검증
 └── docs/              # 성능 최적화 및 트러블슈팅 가이드
 ```
 

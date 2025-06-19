@@ -6,19 +6,36 @@
 export * from './base';
 
 // 인증 스키마
+// export * from './auth.ts.backup';
 export * from './auth';
 
+// 사용자 스키마 (기존 auth 서비스에서 이전)
+export * from './user';
+
+// 강의 스키마
+export * from './course';
+
+// 거래(결제) 스키마
+export * from './transaction';
+
+// 사용자 강의 진도 스키마
+export * from './user-course-progress';
+
 // API 스키마 (기존 common 패키지에서 이전)
-export * from './api';
+// export * from './api.ts.backup';
 
 // 웹 UI 전용 스키마
+// export { chapterSchema, courseSchema, sectionSchema } from './ui';
 export * from './ui';
 
 // 유틸리티 클래스들
 export * from './utils';
 
 // 유틸리티 함수들
-export function validateEmail(email: string): { isValid: boolean; errors: string[] } {
+export function validateEmail(email: string): {
+  isValid: boolean;
+  errors: string[];
+} {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const errors: string[] = [];
 
@@ -31,18 +48,23 @@ export function validateEmail(email: string): { isValid: boolean; errors: string
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 
-export function validatePassword(password: string): { isValid: boolean; errors: string[] } {
+export function validatePassword(password: string): {
+  isValid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!password) {
     errors.push('비밀번호를 입력해주세요');
   } else {
-    if (password.length < 8) errors.push('비밀번호는 최소 8자 이상이어야 합니다');
-    if (password.length > 128) errors.push('비밀번호는 128자를 초과할 수 없습니다');
+    if (password.length < 8)
+      errors.push('비밀번호는 최소 8자 이상이어야 합니다');
+    if (password.length > 128)
+      errors.push('비밀번호는 128자를 초과할 수 없습니다');
 
     const hasLowerCase = /[a-z]/.test(password);
     const hasUpperCase = /[A-Z]/.test(password);
@@ -50,13 +72,15 @@ export function validatePassword(password: string): { isValid: boolean; errors: 
     const hasSpecialChar = /[@$!%*?&]/.test(password);
 
     if (!hasLowerCase || !hasUpperCase || !hasNumbers || !hasSpecialChar) {
-      errors.push('비밀번호는 대소문자, 숫자, 특수문자(@$!%*?&)를 포함해야 합니다');
+      errors.push(
+        '비밀번호는 대소문자, 숫자, 특수문자(@$!%*?&)를 포함해야 합니다'
+      );
     }
   }
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 }
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RegisterDto, LoginDto } from './auth';
+import { RegisterDto, LoginDto } from '../auth';
 
 // ==============================
 // 🔧 브라우저 타입 정의
@@ -7,7 +7,10 @@ import { RegisterDto, LoginDto } from './auth';
 
 // 브라우저 환경 검사 함수
 function isBrowser(): boolean {
-  return typeof (globalThis as any).window !== 'undefined' && typeof (globalThis as any).localStorage !== 'undefined';
+  return (
+    typeof (globalThis as any).window !== 'undefined' &&
+    typeof (globalThis as any).localStorage !== 'undefined'
+  );
 }
 
 // ==============================
@@ -21,8 +24,14 @@ export class TokenManager {
 
   static setTokens(accessToken: string, refreshToken: string): void {
     if (isBrowser()) {
-      (globalThis as any).localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
-      (globalThis as any).localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+      (globalThis as any).localStorage.setItem(
+        this.ACCESS_TOKEN_KEY,
+        accessToken
+      );
+      (globalThis as any).localStorage.setItem(
+        this.REFRESH_TOKEN_KEY,
+        refreshToken
+      );
     }
   }
 
@@ -52,12 +61,16 @@ export class TokenManager {
       // 브라우저 환경에서만 atob 사용
       if (typeof (globalThis as any).atob === 'undefined') {
         // Node.js 환경에서는 Buffer 사용
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        const payload = JSON.parse(
+          Buffer.from(token.split('.')[1], 'base64').toString()
+        );
         const currentTime = Date.now() / 1000;
         return payload.exp < currentTime;
       } else {
         // 브라우저 환경에서는 atob 사용
-        const payload = JSON.parse((globalThis as any).atob(token.split('.')[1]));
+        const payload = JSON.parse(
+          (globalThis as any).atob(token.split('.')[1])
+        );
         const currentTime = Date.now() / 1000;
         return payload.exp < currentTime;
       }
@@ -231,7 +244,7 @@ export class FormValidator {
     if (!password) return '비밀번호를 입력해주세요';
     if (password.length < 8) return '비밀번호는 최소 8자 이상이어야 합니다';
     if (password.length > 128) return '비밀번호는 128자를 초과할 수 없습니다';
-    
+
     const hasLowerCase = /[a-z]/.test(password);
     const hasUpperCase = /[A-Z]/.test(password);
     const hasNumbers = /\d/.test(password);

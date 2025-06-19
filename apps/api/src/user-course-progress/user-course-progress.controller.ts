@@ -23,17 +23,15 @@ import { ZodValidationPipe } from '@packages/common';
 import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-import type {
-  // UpdateUserCourseProgressDto, // 임시로 비활성화
-  // UserCourseProgressParamsDto, // 임시로 비활성화
-  // UserEnrolledCoursesParamsDto, // 임시로 비활성화
-} from './dto/user-course-progress.dto';
+// import type {} from // UpdateUserCourseProgressDto, // 임시로 비활성화
+// UserCourseProgressParamsDto, // 임시로 비활성화
+// UserEnrolledCoursesParamsDto, // 임시로 비활성화
+// './dto/user-course-progress.dto.ts.backup';
 
-import {
-  // UpdateUserCourseProgressSchema, // 임시로 비활성화
-  // UserCourseProgressParamsSchema, // 임시로 비활성화
-  // UserEnrolledCoursesParamsSchema, // 임시로 비활성화
-} from './dto/user-course-progress.dto';
+// import {} from // UpdateUserCourseProgressSchema, // 임시로 비활성화
+// UserCourseProgressParamsSchema, // 임시로 비활성화
+// UserEnrolledCoursesParamsSchema, // 임시로 비활성화
+// './dto/user-course-progress.dto.ts.backup';
 
 // 다른 스키마들도 임시로 비활성화
 /*
@@ -79,7 +77,8 @@ export class UserCourseProgressController {
   @Get(':userId/enrolled-courses')
   @ApiOperation({
     summary: '등록 강의 목록 조회',
-    description: '사용자가 등록한 모든 강의 목록을 조회합니다. (N+1 최적화 적용)',
+    description:
+      '사용자가 등록한 모든 강의 목록을 조회합니다. (N+1 최적화 적용)',
   })
   @ApiResponse({ status: 200, description: '등록 강의 목록 조회 성공' })
   @ApiResponse({ status: 401, description: '인증 필요' })
@@ -92,13 +91,13 @@ export class UserCourseProgressController {
   ) {
     // 수동으로 파라미터 검증
     const processedParams = {
-      userId: params?.userId || ''
+      userId: params?.userId || '',
     };
-    
+
     if (!processedParams.userId) {
       throw new BadRequestException('사용자 ID가 필요합니다');
     }
-    
+
     this.logger.log(
       `등록 강의 목록 조회 요청 - 대상: ${processedParams.userId}, 요청자: ${user.id}`
     );
@@ -135,13 +134,13 @@ export class UserCourseProgressController {
     // 수동으로 파라미터 검증
     const processedParams = {
       userId: params?.userId || '',
-      courseId: params?.courseId || ''
+      courseId: params?.courseId || '',
     };
-    
+
     if (!processedParams.userId || !processedParams.courseId) {
       throw new BadRequestException('사용자 ID와 강의 ID가 필요합니다');
     }
-    
+
     this.logger.log(
       `강의 진도 조회 요청 - 사용자: ${processedParams.userId}, 강의: ${processedParams.courseId}, 요청자: ${user.id}`
     );
@@ -164,7 +163,8 @@ export class UserCourseProgressController {
   @Put(':userId/courses/:courseId')
   @ApiOperation({
     summary: '강의 진도 업데이트',
-    description: '특정 강의의 학습 진도를 업데이트합니다. (트랜잭션 기반 최적화)',
+    description:
+      '특정 강의의 학습 진도를 업데이트합니다. (트랜잭션 기반 최적화)',
   })
   @ApiResponse({ status: 200, description: '강의 진도 업데이트 성공' })
   @ApiResponse({ status: 400, description: '잘못된 요청 데이터' })
@@ -182,20 +182,21 @@ export class UserCourseProgressController {
     // 수동으로 파라미터 검증
     const processedParams = {
       userId: params?.userId || '',
-      courseId: params?.courseId || ''
+      courseId: params?.courseId || '',
     };
-    
+
     if (!processedParams.userId || !processedParams.courseId) {
       throw new BadRequestException('사용자 ID와 강의 ID가 필요합니다');
     }
-    
+
     // 수동으로 진도 데이터 처리
     const processedData = {
       sections: updateProgressDto?.sections || [],
       overallProgress: updateProgressDto?.overallProgress || undefined,
-      lastAccessedChapterId: updateProgressDto?.lastAccessedChapterId || undefined
+      lastAccessedChapterId:
+        updateProgressDto?.lastAccessedChapterId || undefined,
     };
-    
+
     this.logger.log(
       `강의 진도 업데이트 요청 - 사용자: ${processedParams.userId}, 강의: ${processedParams.courseId}, 요청자: ${user.id}`
     );
@@ -220,7 +221,8 @@ export class UserCourseProgressController {
   @Get('batch')
   @ApiOperation({
     summary: '다중 사용자 진도 일괄 조회',
-    description: '여러 사용자의 강의 진도를 일괄로 조회합니다. (관리자/강사용, Batch 최적화)',
+    description:
+      '여러 사용자의 강의 진도를 일괄로 조회합니다. (관리자/강사용, Batch 최적화)',
   })
   @ApiResponse({ status: 200, description: '일괄 진도 조회 성공' })
   @ApiResponse({ status: 401, description: '인증 필요' })
@@ -232,10 +234,16 @@ export class UserCourseProgressController {
   ) {
     // 권한 검증: 관리자/강사만 접근 가능
     if (user.role !== 'admin' && user.role !== 'teacher') {
-      throw new BadRequestException('이 기능은 관리자나 강사만 사용할 수 있습니다');
+      throw new BadRequestException(
+        '이 기능은 관리자나 강사만 사용할 수 있습니다'
+      );
     }
 
-    if (!body.userIds || !Array.isArray(body.userIds) || body.userIds.length === 0) {
+    if (
+      !body.userIds ||
+      !Array.isArray(body.userIds) ||
+      body.userIds.length === 0
+    ) {
       throw new BadRequestException('사용자 ID 목록이 필요합니다');
     }
 
@@ -243,15 +251,14 @@ export class UserCourseProgressController {
       `일괄 진도 조회 요청 - 사용자 수: ${body.userIds.length}, 요청자: ${user.id}`
     );
 
-    const result = await this.userCourseProgressService.getBatchUserCourseProgress(
-      body.userIds,
-      body.courseId,
-      user
-    );
+    const result =
+      await this.userCourseProgressService.getBatchUserCourseProgress(
+        body.userIds,
+        body.courseId,
+        user
+      );
 
-    this.logger.log(
-      `일괄 진도 조회 완료 - ${result.data.length}건 반환`
-    );
+    this.logger.log(`일괄 진도 조회 완료 - ${result.data.length}건 반환`);
     return result;
   }
 
@@ -261,7 +268,8 @@ export class UserCourseProgressController {
   @Get('statistics/:courseId')
   @ApiOperation({
     summary: '강의별 진도 통계 조회',
-    description: '특정 강의의 전체 진도 통계를 조회합니다. (관리자/강사용, 집계 함수 최적화)',
+    description:
+      '특정 강의의 전체 진도 통계를 조회합니다. (관리자/강사용, 집계 함수 최적화)',
   })
   @ApiResponse({ status: 200, description: '진도 통계 조회 성공' })
   @ApiResponse({ status: 401, description: '인증 필요' })
@@ -279,10 +287,11 @@ export class UserCourseProgressController {
       `강의 진도 통계 조회 요청 - 강의: ${courseId}, 요청자: ${user.id}`
     );
 
-    const result = await this.userCourseProgressService.getCourseProgressStatistics(
-      courseId,
-      user
-    );
+    const result =
+      await this.userCourseProgressService.getCourseProgressStatistics(
+        courseId,
+        user
+      );
 
     this.logger.log(
       `강의 진도 통계 조회 완료 - 총 ${result.data.totalStudents}명`

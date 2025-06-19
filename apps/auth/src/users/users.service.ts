@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@packages/database';
 import { generateId } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
-import { CreateUserDto, UpdateUserDto } from './schemas/user.schema';
+import { CreateUserDto, UpdateUserDto } from '@packages/schemas';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -81,26 +85,29 @@ export class UsersService {
    * @param options 조회 옵션 (선택사항)
    * @returns 사용자 정보
    */
-  async findById(id: string, options?: { select?: any }) {
-    const user = await this.prismaService.user.findUnique({
+  async findById(
+    id: string,
+    options?: {
+      include?: {
+        profile?: boolean;
+        settings?: boolean;
+        socialAccounts?: boolean;
+      };
+    }
+  ) {
+    const query = {
       where: { id },
-      ...(options?.select && { select: options.select }),
-      ...(!options?.select && {
-        include: {
-          profile: true,
-          settings: true,
-          socialAccounts: true, // 전체 소셜 계정 정보 포함
-        },
-      }),
-    });
+      include: {
+        profile: options?.include?.profile ?? true,
+        settings: options?.include?.settings ?? true,
+        socialAccounts: options?.include?.socialAccounts ?? true,
+      },
+    };
+
+    const user = await this.prismaService.user.findUnique(query);
 
     if (!user) {
       return null;
-    }
-
-    // select 옵션이 있으면 비밀번호 필드가 없을 수 있음
-    if (options?.select) {
-      return user;
     }
 
     const { password, ...userWithoutPassword } = user;
@@ -255,7 +262,7 @@ export class UsersService {
       providerId: string;
       provider: string;
       providerData?: any;
-    },
+    }
   ) {
     const { providerId, provider, providerData } = socialData;
 
@@ -320,7 +327,10 @@ export class UsersService {
    * @param hashedPassword 해시된 비밀번호
    * @returns 검증 결과
    */
-  async validatePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+  async validatePassword(
+    plainPassword: string,
+    hashedPassword: string
+  ): Promise<boolean> {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
@@ -379,7 +389,10 @@ export class UsersService {
     }
 
     // username 중복 확인 (변경하는 경우에만)
-    if (profileData.username && profileData.username !== existingUser.username) {
+    if (
+      profileData.username &&
+      profileData.username !== existingUser.username
+    ) {
       const existingUsername = await this.findByUsername(profileData.username);
       if (existingUsername) {
         throw new ConflictException('이미 사용 중인 사용자명입니다');
@@ -428,7 +441,7 @@ export class UsersService {
 
     if (Object.keys(profileUpdateData).length > 0) {
       const profileId = generateId(); // 🆔 CUID2 ID 생성
-      
+
       await this.prismaService.userProfile.upsert({
         where: { userId },
         update: profileUpdateData,
@@ -556,7 +569,7 @@ export class UsersService {
 
       console.log('최종 결과:', {
         usersCount: result.users.length,
-        pagination: result.pagination
+        pagination: result.pagination,
       });
       console.log('=== UsersService.findMany 완료 ===');
 

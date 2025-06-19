@@ -24,7 +24,7 @@ export class UserCourseProgressService {
 
   /**
    * 📚 사용자 등록 강의 목록 조회 (N+1 최적화 적용)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 단일 쿼리로 모든 관련 데이터 조회 (userCourseProgress + course + sections + chapters)
    * - 불필요한 중간 courseId 조회 단계 제거
@@ -103,7 +103,7 @@ export class UserCourseProgressService {
 
   /**
    * 📊 특정 강의의 학습 진도 조회 (N+1 최적화 적용)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 강의와 섹션/챕터 데이터를 단일 쿼리로 조회
    * - orderBy를 통한 정렬 성능 최적화
@@ -181,7 +181,7 @@ export class UserCourseProgressService {
 
   /**
    * 📝 강의 학습 진도 업데이트 (N+1 최적화 + 캐시 무효화 적용)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 트랜잭션 내에서 조회와 업데이트를 순차적 수행
    * - 업데이트 후 강의 정보를 타 쿼리로 조회하지 않고 첨부
@@ -297,7 +297,7 @@ export class UserCourseProgressService {
 
   /**
    * 🔍 다중 사용자의 강의 진도 일괄 조회 (Batch 최적화 + 캐싱)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 여러 사용자의 진도를 단일 쿼리로 조회
    * - 관리자 대시보드나 보고서 생성 시 사용
@@ -384,7 +384,7 @@ export class UserCourseProgressService {
 
   /**
    * 📈 강의별 전체 진도 통계 조회 (N+1 최적화 + 캐싱)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 집계 함수를 활용한 단일 쿼리 통계
    * - 강의별 진도 분석 대시보드용
@@ -486,7 +486,7 @@ export class UserCourseProgressService {
   /**
    * 📊 전체 진도율 계산 (성능 최적화)
    * 완료된 챕터 수 / 전체 챕터 수 * 100
-   * 
+   *
    * 🚀 성능 최적화:
    * - 단일 루프로 reduce 연산 최소화
    * - 조기 종료 조건 추가
@@ -517,7 +517,7 @@ export class UserCourseProgressService {
   /**
    * 🔄 섹션 데이터 병합 (성능 최적화)
    * 기존 데이터와 새 데이터를 병합하여 일관성 유지
-   * 
+   *
    * 🚀 성능 최적화:
    * - Map을 활용한 O(n) 시간 복잡도 병합
    * - 불필요한 배열 복사 최소화
@@ -533,7 +533,7 @@ export class UserCourseProgressService {
 
     // Map을 사용한 효율적인 병합
     const sectionMap = new Map();
-    
+
     // 기존 섹션 Map에 추가
     existingSections.forEach(section => {
       sectionMap.set(section.sectionId, section);
@@ -542,7 +542,7 @@ export class UserCourseProgressService {
     // 새 섹션들로 병합
     newSections.forEach((newSection) => {
       const existing = sectionMap.get(newSection.sectionId);
-      
+
       if (existing) {
         // 기존 섹션 업데이트
         sectionMap.set(newSection.sectionId, {
@@ -564,7 +564,7 @@ export class UserCourseProgressService {
 
   /**
    * 🔄 챕터 데이터 병합 (성능 최적화)
-   * 
+   *
    * 🚀 성능 최적화:
    * - Map을 활용한 O(n) 시간 복잡도 병합
    * - 완료 상태 우선 반영
@@ -580,7 +580,7 @@ export class UserCourseProgressService {
 
     // Map을 사용한 효율적인 병합
     const chapterMap = new Map();
-    
+
     // 기존 챕터 Map에 추가
     existingChapters.forEach(chapter => {
       chapterMap.set(chapter.chapterId, chapter);
@@ -589,7 +589,7 @@ export class UserCourseProgressService {
     // 새 챕터들로 병합
     newChapters.forEach((newChapter) => {
       const existing = chapterMap.get(newChapter.chapterId);
-      
+
       if (existing) {
         // 기존 챕터 업데이트 (완료 상태 우선 반영)
         chapterMap.set(newChapter.chapterId, {
@@ -607,7 +607,7 @@ export class UserCourseProgressService {
 
   /**
    * 📄 JSON 섹션 데이터 파싱 (에러 핸들링 강화)
-   * 
+   *
    * 🚀 성능 최적화:
    * - 타입 체크 최소화
    * - 안전한 JSON 파싱

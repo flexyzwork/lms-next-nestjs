@@ -20,6 +20,7 @@
     "@nestjs/platform-express": "^11.1.3",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/swagger": "^11.2.0",
+    "@packages/schemas": "workspace:^",
     "@packages/common": "workspace:^",
     "@packages/config": "workspace:^",
     "@packages/database": "workspace:^",

@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '@packages/database';
 import { generateId } from '@packages/common'; // 🆔 CUID2 생성자 사용
-import { CreateCourseDto } from './dto/course.dto';
+import { CreateCourseDto } from './dto/course.dto.ts.backup';
 // 임시로 비활성화: UploadVideoUrlDto, UpdateCourseDto, UpdateCourseFormDataDto
 
 // 🔧 타입 안전한 정렬 상수 정의
@@ -19,11 +19,17 @@ const ORDER_BY_INDEX_ASC: Prisma.SortOrder = 'asc';
 const ORDER_BY_CREATED_DESC: Prisma.SortOrder = 'desc';
 
 // 📊 섹션/챕터 정렬 설정
-const SECTION_ORDER_BY: Prisma.SectionOrderByWithRelationInput = { orderIndex: ORDER_BY_INDEX_ASC };
-const CHAPTER_ORDER_BY: Prisma.ChapterOrderByWithRelationInput = { orderIndex: ORDER_BY_INDEX_ASC };
+const SECTION_ORDER_BY: Prisma.SectionOrderByWithRelationInput = {
+  orderIndex: ORDER_BY_INDEX_ASC,
+};
+const CHAPTER_ORDER_BY: Prisma.ChapterOrderByWithRelationInput = {
+  orderIndex: ORDER_BY_INDEX_ASC,
+};
 
 // 🔧 유틸리티 함수: undefined 값 제거
-function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+function removeUndefinedFields<T extends Record<string, any>>(
+  obj: T
+): Partial<T> {
   const result: Partial<T> = {};
   for (const key in obj) {
     if (obj[key] !== undefined) {
@@ -274,39 +280,42 @@ export class CoursesService {
     try {
       this.logger.log(`강의 통계 조회 시작 - 대상: ${courseId || '전체'}`);
 
-      const whereCondition = courseId ? { courseId } : { status: 'Published' as const };
+      const whereCondition = courseId
+        ? { courseId }
+        : { status: 'Published' as const };
 
       // 🚀 집계 쿼리로 기본 통계
-      const [courseStats, enrollmentStats, transactionStats] = await Promise.all([
-        // 강의 기본 통계
-        this.prismaService.course.aggregate({
-          where: whereCondition,
-          _count: { courseId: true },
-          _avg: { price: true },
-          _sum: { price: true },
-          _min: { price: true },
-          _max: { price: true },
-        }),
+      const [courseStats, enrollmentStats, transactionStats] =
+        await Promise.all([
+          // 강의 기본 통계
+          this.prismaService.course.aggregate({
+            where: whereCondition,
+            _count: { courseId: true },
+            _avg: { price: true },
+            _sum: { price: true },
+            _min: { price: true },
+            _max: { price: true },
+          }),
 
-        // 등록 통계
-        this.prismaService.enrollment.groupBy({
-          by: ['courseId'],
-          where: courseId ? { courseId } : {},
-          _count: { userId: true },
-          orderBy: { _count: { userId: 'desc' } },
-          take: 10, // 상위 10개 강의
-        }),
+          // 등록 통계
+          this.prismaService.enrollment.groupBy({
+            by: ['courseId'],
+            where: courseId ? { courseId } : {},
+            _count: { userId: true },
+            orderBy: { _count: { userId: 'desc' } },
+            take: 10, // 상위 10개 강의
+          }),
 
-        // 결제 통계
-        this.prismaService.transaction.groupBy({
-          by: ['courseId'],
-          where: courseId ? { courseId } : {},
-          _count: { transactionId: true },
-          _sum: { amount: true },
-          orderBy: { _sum: { amount: 'desc' } },
-          take: 10, // 상위 10개 강의
-        }),
-      ]);
+          // 결제 통계
+          this.prismaService.transaction.groupBy({
+            by: ['courseId'],
+            where: courseId ? { courseId } : {},
+            _count: { transactionId: true },
+            _sum: { amount: true },
+            orderBy: { _sum: { amount: 'desc' } },
+            take: 10, // 상위 10개 강의
+          }),
+        ]);
 
       // 카테고리별 통계
       const categoryStats = await this.prismaService.course.groupBy({
@@ -416,10 +425,10 @@ export class CoursesService {
         },
       };
 
-      const course = await this.prismaService.course.findUnique({
+      const course = (await this.prismaService.course.findUnique({
         where: { courseId },
         include: includeOptions,
-      }) as CourseWithDetails | null;
+      })) as CourseWithDetails | null;
 
       if (!course) {
         this.logger.warn(`강의를 찾을 수 없음 - ID: ${courseId}`);
@@ -476,7 +485,7 @@ export class CoursesService {
     try {
       this.logger.log(`강의 생성 시작 - 교사: ${createCourseDto.teacherName}`);
 
-      const newCourse = await this.prismaService.course.create({
+      const newCourse = (await this.prismaService.course.create({
         data: {
           courseId: generateId(), // 🆔 CUID2 사용
           teacherId: createCourseDto.teacherId,
@@ -496,7 +505,7 @@ export class CoursesService {
             },
           },
         },
-      }) as CourseWithSections;
+      })) as CourseWithSections;
 
       this.logger.log(
         `강의 생성 완료 - ID: ${newCourse.courseId}, 제목: ${newCourse.title}`
@@ -521,7 +530,11 @@ export class CoursesService {
    * - 필요한 데이터만 select로 조회
    */
   async updateCourse(
-courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.File | undefined  ) {
+    courseId: string,
+    updateCourseDto: any,
+    userId: string,
+    file: Express.Multer.File | undefined
+  ) {
     try {
       this.logger.log(`강의 수정 시작 - ID: ${courseId}, 사용자: ${userId}`);
       this.logger.log(`Update Data:`, JSON.stringify(updateCourseDto, null, 2));
@@ -541,7 +554,7 @@ courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.Fil
         const cleanedUpdateData = removeUndefinedFields(updateData);
 
         // 🚀 권한 확인과 업데이트를 단일 쿼리로 처리
-        const updatedCourse = await tx.course.update({
+        const updatedCourse = (await tx.course.update({
           where: {
             courseId,
             teacherId: userId, // 권한 확인을 WHERE 조건에 포함
@@ -564,7 +577,7 @@ courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.Fil
               },
             },
           },
-        }) as CourseWithSections;
+        })) as CourseWithSections;
 
         return updatedCourse;
       });
@@ -580,7 +593,10 @@ courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.Fil
       };
     } catch (error) {
       // Prisma P2025 에러: 레코드를 찾을 수 없음 (권한 없음 포함)
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
         this.logger.warn(
           `강의 수정 권한 없음 또는 강의 없음 - ID: ${courseId}, 사용자: ${userId}`
         );
@@ -590,7 +606,10 @@ courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.Fil
       }
 
       // Prisma P2022 에러: 컬럼을 찾을 수 없음 (orderIndex 필드 누락)
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2022'
+      ) {
         this.logger.error(
           `데이터베이스 스키마 오류 - orderIndex 필드 누락: ${error.meta?.column}`
         );
@@ -651,7 +670,10 @@ courseId: string, updateCourseDto: any, userId: string, file: Express.Multer.Fil
       };
     } catch (error) {
       // Prisma P2025 에러: 레코드를 찾을 수 없음 (권한 없음 포함)
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
         this.logger.warn(
           `강의 삭제 권한 없음 또는 강의 없음 - ID: ${courseId}, 사용자: ${userId}`
         );

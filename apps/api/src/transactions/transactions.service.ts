@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import Stripe from 'stripe';
 
 import { PrismaService } from '@packages/database';
@@ -26,7 +32,9 @@ export class TransactionsService {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeSecretKey) {
       this.logger.error('STRIPE_SECRET_KEY 환경변수가 설정되지 않음');
-      throw new Error('STRIPE_SECRET_KEY is required but was not found in env variables');
+      throw new Error(
+        'STRIPE_SECRET_KEY is required but was not found in env variables'
+      );
     }
 
     this.stripe = new Stripe(stripeSecretKey, {
@@ -39,20 +47,24 @@ export class TransactionsService {
    */
   async findAllTransactions(query: any, user: User) {
     try {
-      this.logger.log(`트랜잭션 목록 조회 시작 - 요청자: ${user.id}, 대상: ${query.userId || '전체'}`);
+      this.logger.log(
+        `트랜잭션 목록 조회 시작 - 요청자: ${user.id}, 대상: ${query.userId || '전체'}`
+      );
 
       // 권한 검증: 일반 사용자는 자신의 트랜잭션만 조회 가능
       const isAdmin = user.role === 'admin' || user.role === 'teacher';
-      
+
       // 일반 사용자가 다른 사용자의 트랜잭션을 조회하려 하는 경우
       if (!isAdmin && query.userId && query.userId !== user.id) {
-        this.logger.warn(`권한 없음 - 요청자: ${user.id}, 대상: ${query.userId}`);
+        this.logger.warn(
+          `권한 없음 - 요청자: ${user.id}, 대상: ${query.userId}`
+        );
         throw new ForbiddenException('본인의 트랜잭션만 조회할 수 있습니다');
       }
-      
+
       const targetUserId = isAdmin ? query.userId : user.id;
       const whereClause = targetUserId ? { userId: targetUserId } : {};
-      
+
       // 페이지네이션 계산
       const page = query.page || 1;
       const limit = query.limit || 10;
@@ -83,7 +95,9 @@ export class TransactionsService {
         }),
       ]);
 
-      this.logger.log(`트랜잭션 목록 조회 완료 - ${transactions.length}개 트랜잭션 반환 (전체: ${totalCount}개)`);
+      this.logger.log(
+        `트랜잭션 목록 조회 완료 - ${transactions.length}개 트랜잭션 반환 (전체: ${totalCount}개)`
+      );
 
       return {
         message: '트랜잭션 목록 조회 성공',
@@ -99,19 +113,23 @@ export class TransactionsService {
       };
     } catch (error) {
       this.logger.error('트랜잭션 목록 조회 중 오류 발생', error);
-      throw new BadRequestException('트랜잭션 목록을 조회하는 중 오류가 발생했습니다');
+      throw new BadRequestException(
+        '트랜잭션 목록을 조회하는 중 오류가 발생했습니다'
+      );
     }
   }
 
   /**
    * 💳 Stripe 결제 의도 생성
-   * 
+   *
    * 주의: KRW(한국 원화)는 센트 단위가 없으므로 원 단위 그대로 전달
    * USD, EUR 등의 통화는 센트 단위로 변환 필요
    */
   async createStripePaymentIntent(createPaymentIntentDto: any) {
     try {
-      this.logger.log(`Stripe 결제 의도 생성 시작 - 금액: ${createPaymentIntentDto.amount}`);
+      this.logger.log(
+        `Stripe 결제 의도 생성 시작 - 금액: ${createPaymentIntentDto.amount}`
+      );
 
       let { amount } = createPaymentIntentDto;
 
@@ -138,7 +156,9 @@ export class TransactionsService {
         },
       });
 
-      this.logger.log(`Stripe 결제 의도 생성 완료 - ID: ${paymentIntent.id}, 금액: ${amount}원 (KRW 원 단위)`);
+      this.logger.log(
+        `Stripe 결제 의도 생성 완료 - ID: ${paymentIntent.id}, 금액: ${amount}원 (KRW 원 단위)`
+      );
 
       return {
         message: 'Stripe 결제 의도 생성 성공',
@@ -156,14 +176,16 @@ export class TransactionsService {
         throw new BadRequestException(`Stripe 오류: ${error.message}`);
       }
 
-      throw new BadRequestException('결제 의도를 생성하는 중 오류가 발생했습니다');
+      throw new BadRequestException(
+        '결제 의도를 생성하는 중 오류가 발생했습니다'
+      );
     }
   }
 
   /**
    * 📝 새 트랜잭션 생성 (결제 완료 후, N+1 최적화 적용)
    * 원자적 처리로 트랜잭션, 등록, 학습 진도 초기화를 모두 처리
-   * 
+   *
    * 🚀 성능 최적화:
    * - 필요한 데이터만 select로 조회
    * - findUniqueOrThrow로 에러 처리 간소화
@@ -171,9 +193,12 @@ export class TransactionsService {
    */
   async createTransaction(createTransactionDto: any) {
     try {
-      this.logger.log(`트랜잭션 생성 시작 - 사용자: ${createTransactionDto.userId}, 강의: ${createTransactionDto.courseId}`);
+      this.logger.log(
+        `트랜잭션 생성 시작 - 사용자: ${createTransactionDto.userId}, 강의: ${createTransactionDto.courseId}`
+      );
 
-      const { userId, courseId, transactionId, amount, paymentProvider } = createTransactionDto;
+      const { userId, courseId, transactionId, amount, paymentProvider } =
+        createTransactionDto;
 
       // 🚀 N+1 최적화: 트랜잭션으로 원자적 처리
       const result = await this.prismaService.$transaction(async (tx) => {
@@ -218,7 +243,9 @@ export class TransactionsService {
         });
 
         if (existingEnrollment) {
-          this.logger.warn(`이미 등록된 강의 - 사용자: ${userId}, 강의: ${courseId}`);
+          this.logger.warn(
+            `이미 등록된 강의 - 사용자: ${userId}, 강의: ${courseId}`
+          );
           throw new BadRequestException('이미 등록된 강의입니다');
         }
 
@@ -302,7 +329,9 @@ export class TransactionsService {
         };
       });
 
-      this.logger.log(`트랜잭션 생성 완료 - ID: ${transactionId}, 강의: ${result.courseInfo.title}`);
+      this.logger.log(
+        `트랜잭션 생성 완료 - ID: ${transactionId}, 강의: ${result.courseInfo.title}`
+      );
 
       return {
         message: '강의 구매 및 등록 성공',
@@ -310,18 +339,30 @@ export class TransactionsService {
         optimized: true, // 최적화 적용 표시
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
 
       // Prisma P2025 에러: 강의를 찾을 수 없음
-      if (error.code === 'P2025') {
-        this.logger.warn(`강의를 찾을 수 없음 - ID: ${createTransactionDto.courseId}`);
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        this.logger.warn(
+          `강의를 찾을 수 없음 - ID: ${createTransactionDto.courseId}`
+        );
         throw new NotFoundException('강의를 찾을 수 없습니다');
       }
 
       this.logger.error('트랜잭션 생성 중 오류 발생', error);
-      throw new BadRequestException('트랜잭션을 생성하는 중 오류가 발생했습니다');
+      throw new BadRequestException(
+        '트랜잭션을 생성하는 중 오류가 발생했습니다'
+      );
     }
   }
 }

@@ -120,6 +120,50 @@ export const paginatedResponseSchema = z.object({
   timestamp: z.string().datetime().default(() => new Date().toISOString()),
 });
 
+// 기본 검증 스키마들 - auth.ts에서도 사용
+export const emailSchema = z
+  .string()
+  .min(1, '이메일을 입력해주세요')
+  .email('올바른 이메일 형식이 아닙니다')
+  .max(255, '이메일은 255자를 초과할 수 없습니다')
+  .transform((email) => email.toLowerCase().trim()); // 소문자 변환 및 공백 제거
+
+export const passwordSchema = z
+  .string()
+  .min(8, '비밀번호는 최소 8자 이상이어야 합니다')
+  .max(128, '비밀번호는 128자를 초과할 수 없습니다')
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    '비밀번호는 대소문자, 숫자, 특수문자(@$!%*?&)를 포함해야 합니다'
+  );
+
+export const usernameSchema = z
+  .string()
+  .min(3, '사용자명은 최소 3자 이상이어야 합니다')
+  .max(30, '사용자명은 30자를 초과할 수 없습니다')
+  .regex(
+    /^[a-zA-Z0-9_-]+$/,
+    '사용자명은 영문, 숫자, 언더스코어, 하이픈만 사용할 수 있습니다'
+  )
+  .transform((username) => username.toLowerCase().trim()); // 소문자 변환
+
+// 이름 관련 스키마
+export const nameSchema = z
+  .string()
+  .min(1, '이름을 입력해주세요')
+  .max(50, '이름은 50자를 초과할 수 없습니다')
+  .regex(/^[가-힣a-zA-Z\s]+$/, '이름은 한글, 영문, 공백만 사용할 수 있습니다')
+  .transform((name) => name.trim());
+
+// 전화번호 스키마 (한국 기준)
+export const phoneSchema = z
+  .string()
+  .regex(
+    /^(\+82|0)?(10|11|16|17|18|19)\d{8}$/,
+    '올바른 한국 휴대폰 번호 형식이 아닙니다 (예: 010-1234-5678)'
+  )
+  .transform((phone) => phone.replace(/[^0-9+]/g, '')); // 숫자와 + 제외 모든 문자 제거
+
 // TypeScript 타입 추출
 export type PaginationDto = z.infer<typeof paginationSchema>;
 export type DateRangeDto = z.infer<typeof dateRangeSchema>;

@@ -32,10 +32,10 @@ import {
   transformUserResponse,
   createUserFilter,
   createUserOrderBy,
-} from './schemas/user.schema';
+} from '@packages/schemas';
 
 // 기본 스키마
-import { paginationSchema } from '@packages/common';
+import { paginationSchema } from '@packages/schemas';
 
 @Controller('users')
 export class UsersController {

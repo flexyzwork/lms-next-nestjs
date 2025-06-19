@@ -62,6 +62,9 @@ importers:
       '@packages/queue':
         specifier: workspace:^
         version: link:../../packages/queue
+      '@packages/schemas':
+        specifier: workspace:^
+        version: link:../../packages/schemas
       '@prisma/client':
         specifier: ^6.9.0
         version: 6.9.0(prisma@6.9.0(typescript@5.8.3))(typescript@5.8.3)

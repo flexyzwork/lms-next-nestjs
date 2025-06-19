@@ -34,22 +34,24 @@ import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-import {
-  CreateCourseSchema,
+// import {
+//   CreateCourseSchema,
   // UpdateCourseSchema, // 임시로 비활성화
   // UpdateCourseFormDataSchema, // 임시로 비활성화
   // UploadVideoUrlSchema, // 임시로 비활성화
   // CourseQuerySchema, // 임시로 비활성화
-} from './dto/course.dto';
-import type {
-  CreateCourseDto,
+// } from './dto/course.dto.ts.backup';
+// import type {
+//   CreateCourseDto,
   // UpdateCourseDto, // 임시로 비활성화
   // UpdateCourseFormDataDto, // 임시로 비활성화
   // UploadVideoUrlDto, // 임시로 비활성화
   // CourseQueryDto, // 임시로 비활성화
-} from './dto/course.dto';
+// } from './dto/course.dto.ts.backup';
 
-import type { User } from '@packages/common';
+// import type { User } from '@packages/common';
+import { createCourseSchema as CreateCourseSchema } from '@packages/schemas';
+import type { CreateCourseDto, User } from '@packages/schemas';
 
 /**
  * 📚 강의 관리 컨트롤러
@@ -116,7 +118,7 @@ export class CoursesController {
     @CurrentUser() user: User
   ) {
     this.logger.log(
-      `강의 생성 요청 - 교사: ${createCourseDto.teacherName} (${createCourseDto.teacherId}), 요청자: ${user.id}, 역할: ${user.role}`
+      `강의 생성 요청 - 교사: ${createCourseDto.teacherId} (${createCourseDto.teacherId}), 요청자: ${user.id}, 역할: ${user.role}`
     );
 
     // 권한 검증: 강사 또는 관리자만 강의 생성 가능

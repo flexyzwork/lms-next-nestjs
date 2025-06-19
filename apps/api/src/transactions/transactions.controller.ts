@@ -25,19 +25,18 @@ import { ZodValidationPipe } from '@packages/common';
 import { ApiJwtAuthGuard } from '../auth/guards/api-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-import type {
-  // CreateStripePaymentIntentDto, // 임시로 비활성화
-  // CreateTransactionDto, // 임시로 비활성화
-  // TransactionQueryDto, // 임시로 비활성화
-} from './dto/transaction.dto';
+// import type {} from // CreateStripePaymentIntentDto, // 임시로 비활성화
+// CreateTransactionDto, // 임시로 비활성화
+// TransactionQueryDto, // 임시로 비활성화
+// './dto/transaction.dto.ts.backup';
 
-import {
-  // CreateStripePaymentIntentSchema, // 임시로 비활성화
-  // CreateTransactionSchema, // 임시로 비활성화
-  // TransactionQuerySchema, // 임시로 비활성화
-} from './dto/transaction.dto';
+// import {} from // CreateStripePaymentIntentSchema, // 임시로 비활성화
+// CreateTransactionSchema, // 임시로 비활성화
+// TransactionQuerySchema, // 임시로 비활성화
+// './dto/transaction.dto.ts.backup';
 
 import type { User } from '@packages/common';
+
 
 /**
  * 💳 결제 및 트랜잭션 관리 컨트롤러
@@ -70,10 +69,7 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: '인증 필요' })
   @ApiResponse({ status: 500, description: '서버 오류' })
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 분당 20회 제한
-  async listTransactions(
-    @Query() query: any,
-    @CurrentUser() user: User
-  ) {
+  async listTransactions(@Query() query: any, @CurrentUser() user: User) {
     // 수동으로 쿼리 파라미터 추출 및 검증
     const queryParams = {
       userId: query?.userId || undefined,
@@ -82,9 +78,9 @@ export class TransactionsController {
       page: query?.page ? parseInt(query.page) : 1,
       limit: query?.limit ? parseInt(query.limit) : 10,
       sortBy: query?.sortBy || 'dateTime',
-      sortOrder: query?.sortOrder || 'desc'
+      sortOrder: query?.sortOrder || 'desc',
     };
-    
+
     this.logger.log(
       `트랜잭션 목록 조회 요청 - 사용자: ${user.id}, 조회 대상: ${queryParams.userId || '전체'}`
     );
@@ -121,23 +117,24 @@ export class TransactionsController {
   ) {
     // 수동으로 데이터 검증
     const processedData = {
-      amount: createPaymentIntentDto?.amount ? Number(createPaymentIntentDto.amount) : 0,
+      amount: createPaymentIntentDto?.amount
+        ? Number(createPaymentIntentDto.amount)
+        : 0,
       courseId: createPaymentIntentDto?.courseId || '',
       currency: createPaymentIntentDto?.currency || 'krw',
-      metadata: createPaymentIntentDto?.metadata || {}
+      metadata: createPaymentIntentDto?.metadata || {},
     };
-    
+
     if (!processedData.amount || processedData.amount <= 0) {
       throw new BadRequestException('결제 금액이 유효하지 않습니다');
     }
-    
+
     this.logger.log(
       `Stripe 결제 의도 생성 요청 - 사용자: ${user.id}, 금액: ${processedData.amount}`
     );
 
-    const result = await this.transactionsService.createStripePaymentIntent(
-      processedData
-    );
+    const result =
+      await this.transactionsService.createStripePaymentIntent(processedData);
 
     this.logger.log(`Stripe 결제 의도 생성 완료 - 사용자: ${user.id}`);
     return result;
@@ -167,16 +164,22 @@ export class TransactionsController {
       userId: createTransactionDto?.userId || '',
       courseId: createTransactionDto?.courseId || '',
       transactionId: createTransactionDto?.transactionId || '',
-      amount: createTransactionDto?.amount ? Number(createTransactionDto.amount) : 0,
+      amount: createTransactionDto?.amount
+        ? Number(createTransactionDto.amount)
+        : 0,
       paymentProvider: createTransactionDto?.paymentProvider || 'stripe',
       paymentMethodId: createTransactionDto?.paymentMethodId || undefined,
-      description: createTransactionDto?.description || undefined
+      description: createTransactionDto?.description || undefined,
     };
-    
-    if (!processedData.userId || !processedData.courseId || !processedData.transactionId) {
+
+    if (
+      !processedData.userId ||
+      !processedData.courseId ||
+      !processedData.transactionId
+    ) {
       throw new BadRequestException('필수 필드가 누락되었습니다');
     }
-    
+
     this.logger.log(
       `트랜잭션 생성 요청 - 사용자: ${processedData.userId}, 강의: ${processedData.courseId}, 요청자: ${user.id}`
     );
@@ -184,9 +187,7 @@ export class TransactionsController {
     const result =
       await this.transactionsService.createTransaction(processedData);
 
-    this.logger.log(
-      `트랜잭션 생성 완료 - ID: ${processedData.transactionId}`
-    );
+    this.logger.log(`트랜잭션 생성 완료 - ID: ${processedData.transactionId}`);
     return result;
   }
 }
