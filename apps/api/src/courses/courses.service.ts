@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '@packages/database';
 import { generateId } from '@packages/common'; // 🆔 CUID2 생성자 사용
-import { CreateCourseDto } from './dto/course.dto.ts.backup';
+import { CreateCourseDto } from '@packages/schemas';
 // 임시로 비활성화: UploadVideoUrlDto, UpdateCourseDto, UpdateCourseFormDataDto
 
 // 🔧 타입 안전한 정렬 상수 정의
@@ -483,13 +483,13 @@ export class CoursesService {
    */
   async createCourse(createCourseDto: CreateCourseDto, id: string) {
     try {
-      this.logger.log(`강의 생성 시작 - 교사: ${createCourseDto.teacherName}`);
+      this.logger.log(`강의 생성 시작 - 교사: ${createCourseDto.teacherId}`);
 
       const newCourse = (await this.prismaService.course.create({
         data: {
           courseId: generateId(), // 🆔 CUID2 사용
           teacherId: createCourseDto.teacherId,
-          teacherName: createCourseDto.teacherName,
+          teacherName: '',
           title: '새 강의',
           description: '',
           category: '미분류',
