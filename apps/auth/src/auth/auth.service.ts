@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PrismaService, RedisService } from '@packages/database';
 import { generateId, parseTimeString } from '@packages/common'; // 🆔 CUID2 생성 유틸리티
-import { RegisterDto, LoginDto } from './schemas/auth.schema';
+import { RegisterDto, LoginDto, UpdateProfileDto } from '@packages/schemas';
 import {
   JwtPayload,
   JwtRefreshPayload,
@@ -622,6 +622,83 @@ export class AuthService {
       return payload;
     } catch (error) {
       return null;
+    }
+  }
+
+  /**
+   * 사용자 프로필 업데이트
+   * @param userId 사용자 ID
+   * @param updateProfileDto 업데이트할 프로필 데이터
+   * @returns 업데이트된 사용자 정보와 새로운 토큰
+   */
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto
+  ): Promise<{ message: string; user: any; tokens?: any }> {
+    try {
+      // 사용자 존재 여부 확인
+      const existingUser = await this.usersService.findById(userId);
+      if (!existingUser) {
+        throw new UnauthorizedException('사용자를 찾을 수 없습니다');
+      }
+
+      // 프로필 업데이트
+      const updatedUser = await this.usersService.updateProfile(
+        userId,
+        updateProfileDto
+      );
+
+      // 중요한 정보(사용자명, 이메일 등)가 변경된 경우 새 토큰 발급
+      let newTokens = null;
+      const shouldRefreshToken = 
+        updateProfileDto.username || 
+        updateProfileDto.firstName || 
+        updateProfileDto.lastName;
+
+      if (shouldRefreshToken) {
+        // 업데이트된 사용자 정보로 새 토큰 생성
+        newTokens = await this.generateTokenPair(updatedUser);
+        this.logger.log(`프로필 업데이트로 인한 토큰 갱신: ${updatedUser.email}`);
+      }
+
+      this.logger.log(`사용자 프로필 업데이트: ${updatedUser.email}`);
+
+      return {
+        message: '프로필이 성공적으로 업데이트되었습니다',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          bio: updatedUser.profile?.bio,
+          location: updatedUser.profile?.location,
+          website: updatedUser.profile?.website,
+          dateOfBirth: updatedUser.profile?.dateOfBirth,
+          phone: updatedUser.profile?.phone,
+          avatar: updatedUser.avatar,
+          isEmailVerified: updatedUser.isVerified,
+          createdAt: updatedUser.createdAt.toISOString(),
+          updatedAt: updatedUser.updatedAt.toISOString(),
+        },
+        ...(newTokens && { tokens: newTokens }), // 새 토큰이 있으면 포함
+      };
+    } catch (error) {
+      this.logger.error('프로필 업데이트 처리 중 오류:', error);
+
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      if (error instanceof ConflictException) {
+        throw error; // 중복된 사용자명 등
+      }
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '알 수 없는 오류가 발생했습니다';
+      throw new BadRequestException(errorMessage);
     }
   }
 

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { TokenManager, AuthApiClient, type AuthUser } from '@packages/auth';
+import { TokenManager, AuthApiClient } from '@packages/auth';
+import type { AuthUser } from '@packages/schemas';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
@@ -46,14 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const response = await authApi.refreshToken(refreshTokenValue);
 
-      if (response.success && response.data) {
+      if (response && response.accessToken && response.refreshToken) {
         TokenManager.setTokens(
-          response.data.accessToken,
-          response.data.refreshToken
+          response.accessToken,
+          response.refreshToken
         );
 
         // 새 토큰으로 프로필 정보 갱신
-        const profileResponse = await authApi.getProfile(response.data.accessToken);
+        const profileResponse = await authApi.getProfile(response.accessToken);
         if (profileResponse.success && profileResponse.data) {
           setUser(profileResponse.data);
         }
@@ -84,9 +85,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // 프로필 정보 가져오기
       const response = await authApi.getProfile(accessToken);
       if (response.success && response.data) {
-        // 응답 데이터 정규화
-        const userData = response.data.user || response.data;
-        setUser(userData);
+        // response.data가 이미 AuthUser 타입
+        setUser(response.data);
       }
     } catch (error) {
       console.error('Auth status check failed:', error);
@@ -116,18 +116,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await authApi.login({ email, password });
 
-      if (response.success && response.data) {
-        if (response.data.tokens) {
-          TokenManager.setTokens(
-            response.data.tokens.accessToken,
-            response.data.tokens.refreshToken
-          );
-        }
-        if (response.data.user) {
-          setUser(response.data.user);
-        }
+      if (response && response.user && response.tokens) {
+        TokenManager.setTokens(
+          response.tokens.accessToken,
+          response.tokens.refreshToken
+        );
+        setUser(response.user);
       } else {
-        throw new Error(response.message || '로그인에 실패했습니다');
+        throw new Error('로그인에 실패했습니다');
       }
     } catch (error) {
       console.error('Login failed:', error);

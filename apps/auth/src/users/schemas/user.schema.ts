@@ -2,16 +2,18 @@ import { z } from 'zod';
 import { 
   paginationSchema, 
   sortOrderSchema, 
+  idSchema 
+} from '@packages/schemas';
+import {
   emailSchema,
   usernameSchema, 
   nameSchema,
   phoneSchema,
-  passwordSchema,
-  idSchema 
-} from '@packages/common';
+  passwordSchema
+} from '@packages/schemas';
 
 // ===================================
-// 🔒 인증 서비스 전용 스키마 (기본 스키마는 @packages/common 사용)
+// 🔒 인증 서비스 전용 스키마 (기본 스키마는 @packages/schemas 사용)
 // ===================================
 
 // 사용자 생성 스키마 (관리자용 - 더 많은 필드 포함)

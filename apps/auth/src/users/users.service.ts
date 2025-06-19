@@ -78,20 +78,29 @@ export class UsersService {
   /**
    * ID로 사용자 조회
    * @param id 사용자 ID
+   * @param options 조회 옵션 (선택사항)
    * @returns 사용자 정보
    */
-  async findById(id: string) {
+  async findById(id: string, options?: { select?: any }) {
     const user = await this.prismaService.user.findUnique({
       where: { id },
-      include: {
-        profile: true,
-        settings: true,
-        socialAccounts: true, // 전체 소셜 계정 정보 포함
-      },
+      ...(options?.select && { select: options.select }),
+      ...(!options?.select && {
+        include: {
+          profile: true,
+          settings: true,
+          socialAccounts: true, // 전체 소셜 계정 정보 포함
+        },
+      }),
     });
 
     if (!user) {
       return null;
+    }
+
+    // select 옵션이 있으면 비밀번호 필드가 없을 수 있음
+    if (options?.select) {
+      return user;
     }
 
     const { password, ...userWithoutPassword } = user;
@@ -355,17 +364,94 @@ export class UsersService {
    * @param profileData 프로필 데이터
    */
   async updateProfile(userId: string, profileData: any) {
-    const profileId = generateId(); // 🆔 CUID2 ID 생성
-    
-    return await this.prismaService.userProfile.upsert({
-      where: { userId },
-      update: profileData,
-      create: {
-        id: profileId, // 🆔 CUID2 ID 직접 지정
-        userId,
-        ...profileData,
+    // 사용자가 존재하는지 확인
+    const existingUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        settings: true,
+        socialAccounts: true,
       },
     });
+
+    if (!existingUser) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다');
+    }
+
+    // username 중복 확인 (변경하는 경우에만)
+    if (profileData.username && profileData.username !== existingUser.username) {
+      const existingUsername = await this.findByUsername(profileData.username);
+      if (existingUsername) {
+        throw new ConflictException('이미 사용 중인 사용자명입니다');
+      }
+    }
+
+    // 사용자 기본 정보와 프로필 정보 분리
+    const {
+      username,
+      firstName,
+      lastName,
+      avatar,
+      bio,
+      location,
+      website,
+      dateOfBirth,
+      phone,
+      ...otherProfileData
+    } = profileData;
+
+    // 사용자 기본 정보 업데이트
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        ...(username !== undefined && { username }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(avatar !== undefined && { avatar }),
+      },
+      include: {
+        profile: true,
+        settings: true,
+        socialAccounts: true,
+      },
+    });
+
+    // 프로필 확장 정보 업데이트 (필요한 경우에만)
+    const profileUpdateData = {
+      ...(bio !== undefined && { bio }),
+      ...(location !== undefined && { location }),
+      ...(website !== undefined && { website }),
+      ...(dateOfBirth !== undefined && { dateOfBirth: new Date(dateOfBirth) }),
+      ...(phone !== undefined && { phone }),
+      ...otherProfileData,
+    };
+
+    if (Object.keys(profileUpdateData).length > 0) {
+      const profileId = generateId(); // 🆔 CUID2 ID 생성
+      
+      await this.prismaService.userProfile.upsert({
+        where: { userId },
+        update: profileUpdateData,
+        create: {
+          id: profileId, // 🆔 CUID2 ID 직접 지정
+          userId,
+          ...profileUpdateData,
+        },
+      });
+    }
+
+    // 업데이트된 사용자 정보 다시 조회
+    const finalUser = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        settings: true,
+        socialAccounts: true,
+      },
+    });
+
+    const { password, ...userWithoutPassword } = finalUser;
+    return userWithoutPassword;
   }
 
   /**

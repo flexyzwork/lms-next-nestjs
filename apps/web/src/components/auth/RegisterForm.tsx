@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterDto, AuthApiClient } from '@packages/auth';
+import { AuthApiClient } from '@packages/auth';
+import { registerSchema, type RegisterDto } from '@packages/schemas';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
@@ -32,11 +33,11 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
       const response = await authApi.register(data);
       
       // 성공 응답 처리
-      if (response && response.success) {
+      if (response && response.user) {
         onSuccess?.(response);
         reset();
       } else {
-        throw new Error(response?.message || '회원가입에 실패했습니다');
+        throw new Error('회원가입에 실패했습니다');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -108,18 +109,34 @@ export default function RegisterForm({ onSuccess, onError }: RegisterFormProps) 
       </div>
 
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+          성 (선택)
+        </label>
+        <input
+          id="firstName"
+          type="text"
+          {...register('firstName')}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="성을 입력하세요"
+        />
+        {errors.firstName && (
+          <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
           이름 (선택)
         </label>
         <input
-          id="name"
+          id="lastName"
           type="text"
-          {...register('name')}
+          {...register('lastName')}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           placeholder="이름을 입력하세요"
         />
-        {errors.name && (
-          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+        {errors.lastName && (
+          <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
         )}
       </div>
 

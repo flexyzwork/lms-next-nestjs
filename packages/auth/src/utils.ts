@@ -1,12 +1,23 @@
 // 토큰 관리 유틸리티
+import type { AuthTokens } from '@packages/schemas';
+
 export class TokenManager {
   private static readonly ACCESS_TOKEN_KEY = 'accessToken';
   private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
 
-  static setTokens(accessToken: string, refreshToken: string): void {
+  static setTokens(accessToken: string, refreshToken: string): void;
+  static setTokens(tokens: AuthTokens): void;
+  static setTokens(accessTokenOrTokens: string | AuthTokens, refreshToken?: string): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+      if (typeof accessTokenOrTokens === 'string') {
+        // setTokens(accessToken, refreshToken) 형태
+        localStorage.setItem(this.ACCESS_TOKEN_KEY, accessTokenOrTokens);
+        localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken!);
+      } else {
+        // setTokens(tokens) 형태
+        localStorage.setItem(this.ACCESS_TOKEN_KEY, accessTokenOrTokens.accessToken);
+        localStorage.setItem(this.REFRESH_TOKEN_KEY, accessTokenOrTokens.refreshToken);
+      }
     }
   }
 

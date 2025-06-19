@@ -1,4 +1,12 @@
 // Auth API 클라이언트
+import type { 
+  RegisterDto, 
+  LoginDto,
+  AuthTokens,
+  AuthUser,
+  RefreshTokenDto 
+} from '@packages/schemas';
+
 export class AuthApiClient {
   private baseUrl: string;
 
@@ -35,23 +43,21 @@ export class AuthApiClient {
     return data;
   }
 
-  async register(
-    data: import('../../common/src/schemas/auth.schema').RegisterDto
-  ) {
+  async register(data: RegisterDto): Promise<{ user: AuthUser; tokens: AuthTokens }> {
     return this.request('/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async login(data: import('../../common/src/schemas/auth.schema').LoginDto) {
+  async login(data: LoginDto): Promise<{ user: AuthUser; tokens: AuthTokens }> {
     return this.request('/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string): Promise<AuthTokens> {
     return this.request('/refresh', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
@@ -67,7 +73,7 @@ export class AuthApiClient {
     });
   }
 
-  async getProfile(accessToken: string) {
+  async getProfile(accessToken: string): Promise<{ success: boolean; data: AuthUser }> {
     return this.request('/profile', {
       method: 'GET',
       headers: {

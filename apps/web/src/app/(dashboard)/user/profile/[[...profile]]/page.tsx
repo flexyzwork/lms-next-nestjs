@@ -31,12 +31,30 @@ const UserProfilePage = () => {
     if (!user?.id) return;
 
     try {
+      console.log('🔄 프로필 업데이트 시도:', { username: name });
+      
       const updatedUser = await updateProfile({ username: name });
-      setUser(updatedUser);
+      
+      // 사용자 정보가 자동으로 업데이트됨 (authService에서 처리)
+      console.log('✅ 프로필 업데이트 완료:', updatedUser);
+      
       alert('프로필이 성공적으로 업데이트되었습니다!');
     } catch (error) {
-      console.error('프로필 업데이트 실패:', error);
-      alert('프로필 업데이트에 실패했습니다.');
+      console.error('❌ 프로필 업데이트 실패:', error);
+      
+      // 에러 메시지 처리
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '프로필 업데이트에 실패했습니다.';
+        
+      alert(errorMessage);
+      
+      // 인증 오류인 경우 로그인 페이지로 리다이렉트
+      if (errorMessage.includes('다시 로그인해주세요')) {
+        setTimeout(() => {
+          window.location.href = '/signin';
+        }, 2000);
+      }
     }
   };
 

@@ -79,9 +79,22 @@ async function fetchApi<T = any>(
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
   
   console.log(`🌐 API 요청: ${config.method || 'GET'} ${url}`);
+  console.log(`🔑 인증 토큰: ${accessToken ? '있음' : '없음'}`);
   
   const response = await fetch(url, config);
-  const data = await response.json();
+  
+  let data;
+  try {
+    data = await response.json();
+  } catch (error) {
+    console.error(`❌ JSON 파싱 오류:`, error);
+    throw new ApiError(response.status, { 
+      success: false, 
+      message: 'JSON 파싱 오류' 
+    });
+  }
+  
+  console.log(`📝 API 응답 (${response.status}):`, data);
 
   if (!response.ok) {
     console.error(`❌ API 오류 ${response.status}:`, data);
@@ -206,17 +219,46 @@ export class AuthApiClient {
   /**
    * 프로필 업데이트
    */
-  static async updateProfile(data: Partial<AuthUser>): Promise<AuthUser> {
-    const response = await fetchApi<ApiResponse<AuthUser>>('/api/auth/profile', {
+  static async updateProfile(data: Partial<AuthUser>): Promise<{ user: AuthUser; tokens?: AuthTokens; message: string }> {
+    console.log('🔄 프로필 업데이트 API 요청:', data);
+    
+    const response = await fetchApi<ApiResponse<{ user: AuthUser; tokens?: AuthTokens }>>('/api/auth/profile', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
 
-    if (!response.success || !response.data) {
-      throw new Error('프로필 업데이트 실패');
+    console.log('📝 프로필 업데이트 응답:', response);
+
+    if (!response.success) {
+      throw new Error(response.message || '프로필 업데이트 실패');
     }
 
-    return response.data;
+    if (!response.data || !response.data.user) {
+      console.error('❌ 잘못된 응답 구조:', response);
+      throw new Error('서버 응답 데이터가 올바르지 않습니다');
+    }
+
+    const result = {
+      user: response.data.user,
+      tokens: response.data.tokens,
+      message: response.message
+    };
+
+    console.log('✅ 프로필 업데이트 결과:', result);
+
+    // 새 토큰이 있으면 스토어 업데이트
+    if (result.tokens) {
+      console.log('🔄 새 토큰으로 로그인 상태 업데이트');
+      const { login } = useAuthStore.getState();
+      login(result.user, result.tokens);
+    } else {
+      console.log('📝 사용자 정보만 업데이트');
+      // 토큰이 없으면 사용자 정보만 업데이트
+      const { setUser } = useAuthStore.getState();
+      setUser(result.user);
+    }
+
+    return result;
   }
 }
 

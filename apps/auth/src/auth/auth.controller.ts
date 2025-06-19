@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Req,
@@ -31,6 +32,7 @@ import {
   Public,
   CurrentUser,
   ZodBody,
+  ZodValidationPipe,
 } from '@packages/common';
 
 // Zod 스키마 import from unified schemas package
@@ -39,9 +41,11 @@ import {
   loginSchema,
   refreshTokenSchema,
   passwordStrengthSchema,
+  updateProfileSchema,
   type RegisterDto,
   type LoginDto,
   type RefreshTokenDto,
+  type UpdateProfileDto,
 } from '@packages/schemas';
 
 // 스웨거 응답 DTO 클래스들
@@ -196,12 +200,42 @@ class PasswordStrengthRequestDto {
   password: string;
 }
 
+class UpdateProfileRequestDto {
+  @ApiProperty({ example: 'newusername', description: '사용자명 (선택사항)', required: false })
+  username?: string;
+
+  @ApiProperty({ example: '김', description: '이름 (선택사항)', required: false })
+  firstName?: string;
+
+  @ApiProperty({ example: '철수', description: '성 (선택사항)', required: false })
+  lastName?: string;
+
+  @ApiProperty({ example: '안녕하세요, 저는 개발자입니다.', description: '자기소개 (선택사항)', required: false })
+  bio?: string;
+
+  @ApiProperty({ example: '서울, 대한민국', description: '위치 (선택사항)', required: false })
+  location?: string;
+
+  @ApiProperty({ example: 'https://example.com', description: '웹사이트 (선택사항)', required: false })
+  website?: string;
+
+  @ApiProperty({ example: '1990-01-01', description: '생년월일 (YYYY-MM-DD) (선택사항)', required: false })
+  dateOfBirth?: string;
+
+  @ApiProperty({ example: '010-1234-5678', description: '전화번호 (선택사항)', required: false })
+  phone?: string;
+
+  @ApiProperty({ example: 'https://example.com/avatar.jpg', description: '아바타 URL (선택사항)', required: false })
+  avatar?: string;
+}
+
 @ApiTags('🔐 인증 (Authentication)')
 @ApiExtraModels(
   LoginRequestDto,
   RegisterRequestDto,
   RefreshTokenRequestDto,
   PasswordStrengthRequestDto,
+  UpdateProfileRequestDto,
   ErrorResponseDto,
 )
 @Controller('auth')
@@ -616,6 +650,113 @@ export class AuthController {
       success: true,
       data: user,
     };
+  }
+
+  /**
+   * 사용자 프로필 업데이트
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ 
+    summary: '사용자 프로필 업데이트',
+    description: '현재 로그인한 사용자의 프로필 정보를 업데이트합니다.' 
+  })
+  @ApiBody({ 
+    type: UpdateProfileRequestDto,
+    description: '업데이트할 프로필 정보'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '프로필 업데이트 성공 (중요 정보 변경 시 새 토큰 포함)',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: '프로필이 성공적으로 업데이트되었습니다. 새로운 토큰이 발급되었습니다.' },
+        data: {
+          type: 'object',
+          properties: {
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: 'm3n4o5p6q7r8s9t0u1v2w3x4' },
+                email: { type: 'string', example: 'student1@example.com' },
+                username: { type: 'string', example: 'new_username' },
+                firstName: { type: 'string', example: '김' },
+                lastName: { type: 'string', example: '철수' },
+                bio: { type: 'string', example: '안녕하세요, 저는 개발자입니다.' },
+                location: { type: 'string', example: '서울, 대한민국' },
+                website: { type: 'string', example: 'https://example.com' },
+                phone: { type: 'string', example: '010-1234-5678' },
+                avatar: { type: 'string', example: 'https://example.com/avatar.jpg' },
+                isEmailVerified: { type: 'boolean', example: true },
+                createdAt: { type: 'string', example: '2025-06-02T11:00:00.000Z' },
+                updatedAt: { type: 'string', example: '2025-06-19T07:58:30.000Z' }
+              }
+            },
+            tokens: {
+              type: 'object',
+              description: '사용자명, 이름 등 중요 정보 변경 시에만 포함',
+              properties: {
+                accessToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                refreshToken: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                expiresIn: { type: 'number', example: 900 },
+                tokenType: { type: 'string', example: 'Bearer' }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: '인증이 필요합니다',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: '잘못된 요청 데이터',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: '이미 사용 중인 사용자명',
+    type: ErrorResponseDto,
+  })
+  async updateProfile(
+    @CurrentUser('userId') userId: string,
+    @Body() updateProfileDto: any // 임시로 일반 any 타입 사용
+  ) {
+    try {
+      // 수동으로 Zod 스키마 검증
+      const validatedData = updateProfileSchema.parse(updateProfileDto);
+      
+      const result = await this.authService.updateProfile(userId, validatedData);
+      
+      const response: any = {
+        success: true,
+        message: result.message,
+        data: {
+          user: result.user,
+        },
+      };
+
+      // 새 토큰이 있으면 응답에 포함
+      if (result.tokens) {
+        response.data.tokens = result.tokens;
+        response.message += ' 새로운 토큰이 발급되었습니다.';
+      }
+
+      return response;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      this.logger.error(`프로필 업데이트 실패: ${errorMessage}`);
+      throw error;
+    }
   }
 
   /**

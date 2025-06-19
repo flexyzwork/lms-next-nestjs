@@ -144,6 +144,9 @@ export interface TokenPair {
  * Passport JWT Strategy 검증 후 request.user에 설정되는 객체
  */
 export interface JwtUser {
+  /** 🆔 사용자 ID (CurrentUser 데코레이터용) */
+  userId: string;
+  
   /** 🆔 사용자 ID */
   id: string;
   
@@ -152,6 +155,12 @@ export interface JwtUser {
   
   /** 👤 사용자명 */
   username: string;
+  
+  /** 👨 이름 */
+  firstName?: string;
+  
+  /** 👨 성 */
+  lastName?: string;
   
   /** 🔑 사용자 역할 */
   role?: UserRole;

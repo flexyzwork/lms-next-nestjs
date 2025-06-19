@@ -507,6 +507,9 @@ importers:
       '@packages/eslint-config':
         specifier: workspace:^
         version: link:../eslint-config
+      '@packages/schemas':
+        specifier: workspace:^
+        version: link:../schemas
       '@packages/typescript-config':
         specifier: workspace:^
         version: link:../typescript-config
@@ -537,9 +540,6 @@ importers:
       '@nestjs/passport':
         specifier: ^11.0.5
         version: 11.0.5(@nestjs/common@10.4.18(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0)
-      '@packages/schemas':
-        specifier: workspace:^
-        version: link:../schemas
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.2.2

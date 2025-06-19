@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginDto, AuthApiClient, TokenManager } from '@packages/auth';
+import { AuthApiClient, TokenManager } from '@packages/auth';
+import { loginSchema, type LoginDto } from '@packages/schemas';
 
 // API Gateway URL 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
@@ -35,23 +36,21 @@ export default function LoginForm({ onSuccess, onError }: LoginFormProps) {
       console.log('Login response:', response);
 
       // 성공 응답 처리
-      if (response && response.success && response.data) {
-        console.log('성공 응답 데이터:', response.data);
+      if (response && response.user && response.tokens) {
+        console.log('성공 응답 데이터:', response);
 
         // 토큰 저장
-        if (response.data.tokens) {
-          TokenManager.setTokens(
-            response.data.tokens.accessToken,
-            response.data.tokens.refreshToken
-          );
-          console.log('토큰 저장 완료');
-        }
+        TokenManager.setTokens(
+          response.tokens.accessToken,
+          response.tokens.refreshToken
+        );
+        console.log('토큰 저장 완료');
 
         onSuccess?.(response);
         reset();
       } else {
         console.error('예상치 못한 응답 형식:', response);
-        throw new Error(response?.message || '로그인에 실패했습니다');
+        throw new Error('로그인에 실패했습니다');
       }
     } catch (error: any) {
       console.error('Login error details:', {

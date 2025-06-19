@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@packages/eslint-config": "workspace:^",
+    "@packages/schemas": "workspace:^",
     "@packages/typescript-config": "workspace:^",
     "@swc/core": "^1",
     "tsup": "^8",

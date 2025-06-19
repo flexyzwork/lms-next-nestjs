@@ -123,16 +123,31 @@ export async function fetchProfile() {
  */
 export async function updateProfile(profileData: Partial<AuthUser>) {
   try {
-    const updatedUser = await authApi.updateProfile(profileData);
+    const result = await authApi.updateProfile(profileData);
     
-    // 스토어 업데이트
-    const { setUser } = useAuthStore.getState();
-    setUser(updatedUser);
+    // API 클라이언트에서 이미 스토어를 업데이트했으므로 여기서는 결과만 반환
+    console.log('✅ 프로필 업데이트 성공:', result.message);
     
-    console.log('✅ 프로필 업데이트 성공');
-    return updatedUser;
+    if (result.tokens) {
+      console.log('🔄 새로운 토큰이 발급되었습니다');
+    }
+    
+    return result.user;
   } catch (error) {
     console.error('❌ 프로필 업데이트 실패:', error);
+    
+    if (error instanceof ApiError) {
+      // 인증 오류인 경우
+      if (error.status === 401) {
+        const { logout } = useAuthStore.getState();
+        logout();
+        throw new Error('사용자 정보에 문제가 있습니다. 다시 로그인해주세요.');
+      }
+      
+      // 기타 API 오류
+      throw new Error(error.message || '프로필 업데이트에 실패했습니다.');
+    }
+    
     throw error;
   }
 }
