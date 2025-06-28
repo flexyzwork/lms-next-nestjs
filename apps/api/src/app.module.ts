@@ -17,6 +17,7 @@ import { CoursesModule } from './courses/courses.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { UserCourseProgressModule } from './user-course-progress/user-course-progress.module';
 import { DebugModule } from './debug/debug.module'; // 🔧 개발 환경 전용
+import { PerformanceModule } from './performance/performance.module'; // 📊 성능 모니터링
 import { PrismaModule, RedisModule } from '@packages/database';
 
 // 가드, 필터, 인터셉터 (공통 패키지)
@@ -77,6 +78,9 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
     CoursesModule,
     TransactionsModule,
     UserCourseProgressModule,
+    
+    // 📊 성능 모니터링 모듈
+    PerformanceModule,
     
     // 🔧 디버깅 모듈 (개발 환경 전용 - 프로덕션에서는 제거)
     DebugModule,

@@ -1,1 +1,122 @@
-import { Controller, Get, Query } from '@nestjs/common';\n\n/**\n * 📊 성능 대시보드 컨트롤러\n * \n * 기능:\n * - 실시간 성능 메트릭 조회\n * - 느린 엔드포인트 분석\n * - 시스템 리소스 모니터링\n * - 성능 경고 및 알림 관리\n */\n@Controller('admin/performance')\nexport class PerformanceDashboardController {\n  \n  /**\n   * 📈 전체 성능 메트릭 조회\n   */\n  @Get('metrics')\n  async getPerformanceMetrics() {\n    const memoryUsage = process.memoryUsage();\n    const uptime = process.uptime();\n    const cpuUsage = process.cpuUsage();\n    \n    return {\n      message: '성능 메트릭 조회 성공',\n      data: {\n        requests: {\n          total: 1000, // 예시 데이터\n          slow: 25,\n          slowRate: 2.5,\n        },\n        responseTime: {\n          average: 35.5,\n          max: 850,\n        },\n        system: {\n          uptime: Math.round(uptime),\n          memory: {\n            used: Math.round(memoryUsage.heapUsed / 1024 / 1024),\n            total: Math.round(memoryUsage.heapTotal / 1024 / 1024),\n            rss: Math.round(memoryUsage.rss / 1024 / 1024),\n            external: Math.round(memoryUsage.external / 1024 / 1024),\n          },\n          cpu: {\n            user: cpuUsage.user,\n            system: cpuUsage.system,\n          },\n        },\n        timestamp: new Date().toISOString(),\n      },\n    };\n  }\n\n  /**\n   * 🐌 느린 엔드포인트 분석\n   */\n  @Get('slow-endpoints')\n  async getSlowEndpoints(\n    @Query('limit') limit: string = '10',\n    @Query('threshold') threshold: string = '1000'\n  ) {\n    // 실제 구현에서는 데이터베이스나 로그 시스템에서 조회\n    const slowEndpoints = [\n      {\n        endpoint: 'GET /api/v1/courses',\n        averageResponseTime: 1250,\n        maxResponseTime: 2100,\n        requestCount: 145,\n        slowRequestCount: 23,\n        slowRate: 15.86,\n        lastSlowRequest: new Date(Date.now() - 30000).toISOString(),\n      },\n      {\n        endpoint: 'POST /api/v1/user-course-progress',\n        averageResponseTime: 1150,\n        maxResponseTime: 1890,\n        requestCount: 89,\n        slowRequestCount: 12,\n        slowRate: 13.48,\n        lastSlowRequest: new Date(Date.now() - 120000).toISOString(),\n      },\n    ];\n\n    return {\n      message: '느린 엔드포인트 분석 완료',\n      data: {\n        threshold: parseInt(threshold),\n        endpoints: slowEndpoints.slice(0, parseInt(limit)),\n        summary: {\n          totalSlowEndpoints: slowEndpoints.length,\n          averageSlowRate: slowEndpoints.reduce((acc, ep) => acc + ep.slowRate, 0) / slowEndpoints.length,\n        },\n      },\n    };\n  }\n\n  /**\n   * 💾 메모리 사용량 추이\n   */\n  @Get('memory-usage')\n  async getMemoryUsage(@Query('period') period: string = '1h') {\n    const currentMemory = process.memoryUsage();\n    \n    // 실제 구현에서는 시계열 데이터 조회\n    const memoryHistory = Array.from({ length: 12 }, (_, i) => {\n      const timestamp = new Date(Date.now() - (11 - i) * 5 * 60 * 1000);\n      const variance = Math.random() * 0.2 - 0.1; // ±10% 변동\n      \n      return {\n        timestamp: timestamp.toISOString(),\n        heapUsed: Math.round((currentMemory.heapUsed * (1 + variance)) / 1024 / 1024),\n        heapTotal: Math.round((currentMemory.heapTotal * (1 + variance * 0.5)) / 1024 / 1024),\n        rss: Math.round((currentMemory.rss * (1 + variance * 0.3)) / 1024 / 1024),\n        external: Math.round((currentMemory.external * (1 + variance)) / 1024 / 1024),\n      };\n    });\n\n    return {\n      message: '메모리 사용량 조회 성공',\n      data: {\n        period,\n        current: {\n          heapUsed: Math.round(currentMemory.heapUsed / 1024 / 1024),\n          heapTotal: Math.round(currentMemory.heapTotal / 1024 / 1024),\n          rss: Math.round(currentMemory.rss / 1024 / 1024),\n          external: Math.round(currentMemory.external / 1024 / 1024),\n        },\n        history: memoryHistory,\n        trends: {\n          heapGrowth: this.calculateTrend(memoryHistory.map(h => h.heapUsed)),\n          memoryLeaks: memoryHistory.filter((_, i, arr) => \n            i > 0 && arr[i].heapUsed > arr[i-1].heapUsed * 1.1\n          ).length,\n        },\n      },\n    };\n  }\n\n  /**\n   * 📊 시스템 헬스체크\n   */\n  @Get('health')\n  async getSystemHealth() {\n    const memory = process.memoryUsage();\n    const uptime = process.uptime();\n    \n    // 헬스 점수 계산 (0-100)\n    const memoryScore = Math.max(0, 100 - (memory.heapUsed / memory.heapTotal) * 100);\n    const responseTimeScore = 85; // 예시 값\n    const errorRateScore = 92; // 예시 값\n    \n    const overallScore = Math.round((memoryScore + responseTimeScore + errorRateScore) / 3);\n    \n    let healthStatus = 'healthy';\n    if (overallScore < 60) healthStatus = 'critical';\n    else if (overallScore < 80) healthStatus = 'warning';\n    \n    return {\n      message: '시스템 헬스체크 완료',\n      data: {\n        status: healthStatus,\n        score: overallScore,\n        details: {\n          memory: {\n            score: Math.round(memoryScore),\n            usage: Math.round((memory.heapUsed / memory.heapTotal) * 100),\n            status: memoryScore > 70 ? 'good' : memoryScore > 50 ? 'warning' : 'critical',\n          },\n          performance: {\n            score: responseTimeScore,\n            averageResponseTime: 35.5,\n            status: 'good',\n          },\n          reliability: {\n            score: errorRateScore,\n            slowRequestRate: 2.5,\n            status: 'good',\n          },\n        },\n        uptime: Math.round(uptime),\n        timestamp: new Date().toISOString(),\n      },\n    };\n  }\n\n  /**\n   * 📈 트렌드 계산 유틸리티\n   */\n  private calculateTrend(values: number[]): string {\n    if (values.length < 2) return 'stable';\n    \n    const first = values[0];\n    const last = values[values.length - 1];\n    const change = ((last - first) / first) * 100;\n    \n    if (change > 10) return 'increasing';\n    if (change < -10) return 'decreasing';\n    return 'stable';\n  }\n}
+import { Controller, Get, Query } from '@nestjs/common';
+import { PerformanceService } from './performance.service';
+import { MemoryMonitorService } from './memory-monitor.service';
+
+/**
+ * 📊 성능 대시보드 컨트롤러
+ * 
+ * 기능:
+ * - 실시간 성능 메트릭 조회
+ * - 느린 엔드포인트 분석
+ * - 시스템 리소스 모니터링
+ * - 메모리 모니터링 및 분석
+ * - 성능 경고 및 알림 관리
+ */
+@Controller('admin/performance')
+export class PerformanceDashboardController {
+  constructor(
+    private readonly performanceService: PerformanceService,
+    private readonly memoryMonitorService: MemoryMonitorService
+  ) {}
+  
+  /**
+   * 📈 전체 성능 메트릭 조회
+   */
+  @Get('metrics')
+  async getPerformanceMetrics() {
+    const metrics = this.performanceService.getPerformanceMetrics();
+    
+    return {
+      message: '성능 메트릭 조회 성공',
+      data: metrics,
+      optimized: true, // 최적화 완료 플래그
+    };
+  }
+
+  /**
+   * 🐌 느린 엔드포인트 분석
+   */
+  @Get('slow-endpoints')
+  async getSlowEndpoints(
+    @Query('limit') limit: string = '10',
+    @Query('threshold') threshold: string = '1000'
+  ) {
+    const slowEndpoints = this.performanceService.getSlowEndpoints(
+      parseInt(limit), 
+      parseInt(threshold)
+    );
+
+    return {
+      message: '느린 엔드포인트 분석 완료',
+      data: slowEndpoints,
+    };
+  }
+
+  /**
+   * 💾 메모리 사용량 상태
+   */
+  @Get('memory')
+  async getMemoryStatus() {
+    const memoryStatus = this.memoryMonitorService.getCurrentMemoryStatus();
+    const memoryTrend = this.memoryMonitorService.getMemoryTrend();
+
+    return {
+      message: '메모리 상태 조회 성공',
+      data: {
+        current: memoryStatus,
+        trend: memoryTrend,
+      },
+    };
+  }
+
+  /**
+   * 📊 메모리 사용량 히스토리
+   */
+  @Get('memory-usage')
+  async getMemoryUsage(@Query('period') period: string = '1h') {
+    const memoryData = this.performanceService.getMemoryUsageHistory(period);
+
+    return {
+      message: '메모리 사용량 조회 성공',
+      data: memoryData,
+    };
+  }
+
+  /**
+   * 📊 시스템 헬스체크
+   */
+  @Get('health')
+  async getSystemHealth() {
+    const healthData = this.performanceService.getSystemHealth();
+    const memoryStatus = this.memoryMonitorService.getCurrentMemoryStatus();
+    
+    return {
+      message: '시스템 헬스체크 완료',
+      data: {
+        ...healthData,
+        memory: {
+          ...healthData.details.memory,
+          monitoring: memoryStatus.status,
+          thresholds: memoryStatus.thresholds,
+        },
+      },
+    };
+  }
+
+  /**
+   * 🔄 메모리 모니터링 제어
+   */
+  @Get('memory/restart-monitoring')
+  async restartMemoryMonitoring() {
+    this.memoryMonitorService.stopMonitoring();
+    this.memoryMonitorService.startMonitoring();
+    
+    return {
+      message: '메모리 모니터링 재시작 완료',
+      data: {
+        status: 'restarted',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+}

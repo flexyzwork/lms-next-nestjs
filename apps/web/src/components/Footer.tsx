@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+// import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
@@ -7,7 +7,7 @@ const Footer = () => {
   return (
     <div className="footer">
       <div className="footer__banner flex justify-center mb-4">
-        <Link href="https://blog.flexyz.work" passHref legacyBehavior>
+        {/* <Link href="https://blog.flexyz.work" passHref legacyBehavior>
           <a
             target="_blank"
             rel="noopener noreferrer"
@@ -16,7 +16,7 @@ const Footer = () => {
             <FileText className="w-6 h-6 text-white dark:text-gray-100" />
             <span>Tech Blog</span>
           </a>
-        </Link>
+        </Link> */}
       </div>
       <p className="text-gray-700 dark:text-gray-300">&copy; {currentYear} FLEXYZ. All Rights Reserved.</p>
       <div className="footer__links gap-4">

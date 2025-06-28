@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from '@packages/common';
+import { PerformanceMiddleware } from './performance/performance.middleware';
+import { MemoryMonitorService } from './performance/memory-monitor.service';
 import compression from 'compression';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -57,6 +59,14 @@ async function bootstrap() {
     // 전역 예외 필터 (Zod 에러 처리 포함)
     app.useGlobalFilters(new AllExceptionsFilter());
 
+    // 📊 성능 모니터링 미들웨어 전역 적용
+    const performanceMiddleware = app.get(PerformanceMiddleware);
+    app.use(performanceMiddleware.use.bind(performanceMiddleware));
+    
+    // 💾 메모리 모니터링 시작
+    const memoryMonitor = app.get(MemoryMonitorService);
+    memoryMonitor.startMonitoring();
+
     // API 접두사 설정
     app.setGlobalPrefix('api/v1');
 
@@ -75,8 +85,17 @@ async function bootstrap() {
     logger.log(`🚀 API 서버가 포트 ${port}에서 실행 중입니다`);
     logger.log(`📝 API 문서: http://localhost:${port}/api-docs`);
     logger.log(`🔗 API 엔드포인트: http://localhost:${port}/api/v1`);
+    logger.log(`📊 성능 모니터링: http://localhost:${port}/api/v1/admin/performance/metrics`);
     logger.log(`🔧 환경: ${process.env.NODE_ENV || 'development'}`);
     logger.log(`✅ Zod 검증 시스템이 적용되었습니다`);
+    logger.log(`✅ 성능 모니터링 시스템이 활성화되었습니다`);
+    
+    // 환경변수 기반 성능 로깅 설정 안내
+    if (process.env.LOG_PERFORMANCE === 'true') {
+      logger.log(`📊 성능 로깅이 활성화되었습니다`);
+    } else {
+      logger.log(`📊 성능 로깅을 활성화하려면 LOG_PERFORMANCE=true를 설정하세요`);
+    }
   } catch (error) {
     logger.error('API 애플리케이션 시작 실패:', error);
     process.exit(1);

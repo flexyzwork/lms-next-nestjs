@@ -46,7 +46,7 @@ lms-next-nestjs/
 
 ### 🎯 N+1 쿼리 최적화
 ```typescript
-// 기존: N+2개 쿼리
+// 기존: N+1개 쿼리
 const users = await findUsers();
 for (const user of users) {
   const courses = await findCourses(user.id);
@@ -153,7 +153,7 @@ pnpm dev:web     # 웹 앱
 
 ### API 엔드포인트
 ```bash
-# 성능 메트릭 확인
+# 실시간 성능 메트릭 확인
 GET /api/v1/admin/performance/metrics
 
 # 시스템 상태 확인
@@ -161,15 +161,24 @@ GET /api/v1/admin/performance/health
 
 # 느린 엔드포인트 분석
 GET /api/v1/admin/performance/slow-endpoints
+
+# 메모리 사용량 추이
+GET /api/v1/admin/performance/memory-usage
 ```
 
-### 번들 분석
-```bash
-# 웹 앱 번들 크기 분석
-cd apps/web && ANALYZE=true npm run build
+### 실시간 모니터링 기능
+- **모든 HTTP 요청 자동 추적**: 응답 시간, 상태코드, URL
+- **느린 요청 자동 감지**: 1초 이상 요청 실시간 로깅
+- **메모리 모니터링**: 30초마다 자동 체크, 임계치 초과 시 경고
+- **자동 가비지 컬렉션**: 메모리 임계치 초과 시 자동 실행
 
-# 전체 빌드 성능 확인
-pnpm build
+### 성능 로깅 활성화
+```bash
+# 상세 성능 로깅 활성화
+LOG_PERFORMANCE=true pnpm dev:api
+
+# 메모리 디버깅 로깅 활성화
+LOG_MEMORY=true pnpm dev:api
 ```
 
 ## 🧪 테스트 및 품질 관리
